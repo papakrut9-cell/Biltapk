@@ -22,7 +22,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh repo clone prism-ml/llama.cpp
+          gh repo clone ggml-org/llama.cpp
           cd llama.cpp/examples/llama.android
           chmod +x gradlew
           ./gradlew assembleDebug
