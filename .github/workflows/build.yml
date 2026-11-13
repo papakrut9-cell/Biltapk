@@ -22,13 +22,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh repo clone Mintplex-Labs/prism-ml-llama.cpp
-          cd prism-ml-llama.cpp/examples/llama.android
+          gh repo clone prism-ml/llama.cpp
+          cd llama.cpp/examples/llama.android
           chmod +x gradlew
           ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Bonsai-Chat-APK
-          path: prism-ml-llama.cpp/examples/llama.android/app/build/outputs/apk/debug/*.apk
+          name: Bonsai2-Chat-APK
+          path: llama.cpp/examples/llama.android/app/build/outputs/apk/debug/*.apk
