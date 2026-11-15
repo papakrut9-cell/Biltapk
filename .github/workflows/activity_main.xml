@@ -1,142 +1,74 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#121212">
+    android:background="#0B0F17"
+    android:fitsSystemWindows="true">
 
-    <!-- Вкладки -->
-    <com.google.android.material.tabs.TabLayout
-        android:id="@+id/tabLayout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#1E1E1E"
-        app:tabIndicatorColor="#BB86FC"
-        app:tabTextColor="#A0A0A0"
-        app:tabSelectedTextColor="#FFFFFF" />
+    <!-- Верхняя панель -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="12dp" android:background="#151C28" android:gravity="center_vertical">
+        <TextView android:id="@+id/statusTitleTv" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Bonsai Studio • Нет модели" android:textColor="#F8FAFC" android:textStyle="bold" android:textSize="14sp" />
+        <TextView android:id="@+id/contextBadgeTv" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0% ОЗУ" android:textColor="#06B6D4" android:textSize="12sp" android:paddingHorizontal="8dp" android:paddingVertical="4dp" android:background="#0B0F17" />
+    </LinearLayout>
 
-    <!-- Контейнер для переключения экранов -->
-    <androidx.viewflipper.ViewFlipper
-        android:id="@+id/viewFlipper"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
-
-        <!-- TAB 0: MAIN -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:padding="16dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Панель управления"
-                android:textColor="#FFFFFF"
-                android:textSize="20sp"
-                android:textStyle="bold" />
-
-            <!-- Пример кнопки быстрого доступа -->
-            <Button
-                android:id="@+id/btnQuickChat"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="Открыть ИИ Чат" />
+    <!-- Экран 1: Чат -->
+    <LinearLayout android:id="@+id/tabChat" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="vertical">
+        <androidx.recyclerview.widget.RecyclerView android:id="@+id/messagesRv" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:padding="8dp" />
+        
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingHorizontal="10dp" android:paddingVertical="4dp" android:gravity="center_vertical">
+            <Button android:id="@+id/thinkModeBtn" android:layout_width="wrap_content" android:layout_height="34dp" android:text="Думать: ВЫКЛ" android:textSize="11sp" android:textColor="#F8FAFC" android:backgroundTint="#1E293B" />
+            <Button android:id="@+id/openLastCodeBtn" android:layout_width="wrap_content" android:layout_height="34dp" android:layout_marginStart="6dp" android:text="В Холст" android:textSize="11sp" android:textColor="#06B6D4" android:backgroundTint="#1E293B" />
+            <TextView android:id="@+id/speedTv" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="end" android:text="0.0 ток/с" android:textColor="#94A3B8" android:textSize="11sp" />
         </LinearLayout>
+        
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="8dp" android:background="#151C28" android:gravity="center_vertical">
+            <EditText android:id="@+id/userInputEt" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:hint="Нажмите Модель для выбора..." android:textColor="#F8FAFC" android:textColorHint="#64748B" android:background="#0B0F17" android:padding="12dp" android:maxLines="4" />
+            <Button android:id="@+id/actionBtn" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:text="Модель" android:textColor="#FFFFFF" android:backgroundTint="#2563EB" />
+        </LinearLayout>
+    </LinearLayout>
 
-        <!-- TAB 1: IDE / CANVAS -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:padding="16dp">
+    <!-- Экран 2: Холст -->
+    <LinearLayout android:id="@+id/tabCanvas" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="vertical" android:visibility="gone">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="8dp" android:background="#151C28">
+            <Button android:id="@+id/canvasCodeModeBtn" android:layout_width="0dp" android:layout_height="38dp" android:layout_weight="1" android:text="Код" android:textSize="12sp" android:backgroundTint="#2563EB" android:textColor="#FFFFFF" />
+            <Button android:id="@+id/canvasPreviewModeBtn" android:layout_width="0dp" android:layout_height="38dp" android:layout_weight="1" android:layout_marginStart="6dp" android:text="Предпросмотр" android:textSize="12sp" android:backgroundTint="#1E293B" android:textColor="#F8FAFC" />
+            <Button android:id="@+id/canvasCopyBtn" android:layout_width="wrap_content" android:layout_height="38dp" android:layout_marginStart="6dp" android:text="Копия" android:textSize="12sp" android:backgroundTint="#1E293B" android:textColor="#06B6D4" />
+        </LinearLayout>
+        <EditText android:id="@+id/canvasEditorEt" android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="top|start" android:padding="12dp" android:textColor="#4ADE80" android:background="#0B0F17" android:typeface="monospace" android:textSize="13sp" android:text="&lt;h2 style='color:#06b6d4'&gt;Холст Bonsai&lt;/h2&gt;" />
+        <WebView android:id="@+id/canvasWebView" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- Экран 3: Терминал -->
+    <LinearLayout android:id="@+id/tabTerminal" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="vertical" android:padding="10dp" android:visibility="gone">
+        <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:background="#05080F" android:padding="8dp">
+            <TextView android:id="@+id/terminalOutputTv" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="bonsai@android:~$ Ready\n" android:textColor="#4ADE80" android:typeface="monospace" android:textSize="12sp" />
+        </ScrollView>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp">
+            <EditText android:id="@+id/terminalInputEt" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:hint="Команда (ls -la)" android:textColor="#4ADE80" android:textColorHint="#475569" android:background="#151C28" android:padding="10dp" android:typeface="monospace" />
+            <Button android:id="@+id/terminalRunBtn" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:text="Run" android:backgroundTint="#16A34A" android:textColor="#FFFFFF" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Экран 4: Настройки -->
+    <ScrollView android:id="@+id/tabSettings" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:padding="14dp" android:visibility="gone">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+            <TextView android:id="@+id/ramInfoTv" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="ОЗУ: загрузка..." android:textColor="#06B6D4" android:padding="12dp" android:background="#151C28" />
             
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Холст / IDE (WebView)"
-                android:textColor="#FFFFFF"/>
+            <Button android:id="@+id/selectNewModelBtn" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="Выбрать файл .GGUF" android:backgroundTint="#2563EB" android:textColor="#FFFFFF" />
+            <Button android:id="@+id/clearChatBtn" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Очистить чат" android:backgroundTint="#334155" android:textColor="#F8FAFC" />
             
-            <!-- Сюда позже вставишь WebView -->
-            <FrameLayout
-                android:id="@+id/canvasContainer"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_marginTop="8dp"
-                android:background="#2A2A2A"/>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:text="Системный промпт (Персона):" android:textColor="#F8FAFC" />
+            <EditText android:id="@+id/systemPromptEt" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:padding="12dp" android:background="#151C28" android:textColor="#F8FAFC" android:text="Ты умный локальный ИИ Bonsai. Отвечай кратко и по делу на русском." />
+            <Button android:id="@+id/applySystemBtn" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Применить роль" android:backgroundTint="#06B6D4" android:textColor="#0B0F17" />
         </LinearLayout>
+    </ScrollView>
 
-        <!-- TAB 2: CHAT -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical">
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/chatRecyclerView"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:padding="8dp"/>
-
-            <!-- Поле ввода -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="8dp"
-                android:background="#1E1E1E">
-
-                <EditText
-                    android:id="@+id/messageInput"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:hint="Введите сообщение..."
-                    android:textColor="#FFFFFF"
-                    android:textColorHint="#808080"
-                    android:background="@android:color/transparent"
-                    android:padding="12dp"/>
-
-                <Button
-                    android:id="@+id/sendButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Отпр." />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- TAB 3: TERMINAL -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:padding="8dp"
-            android:background="#000000">
-
-            <TextView
-                android:id="@+id/terminalOutput"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:text="Terminal v1.0\n$ "
-                android:textColor="#00FF00"
-                android:fontFamily="monospace"
-                android:textSize="12sp" />
-
-            <EditText
-                android:id="@+id/terminalInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="#00FF00"
-                android:fontFamily="monospace"
-                android:background="@android:color/transparent"
-                android:hint="Введите команду..."
-                android:textColorHint="#005500"/>
-        </LinearLayout>
-
-    </androidx.viewflipper.ViewFlipper>
+    <!-- Нижняя навигация -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="52dp" android:background="#151C28" android:padding="4dp">
+        <Button android:id="@+id/navChatBtn" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="Чат" android:textSize="12sp" android:backgroundTint="#2563EB" android:textColor="#FFFFFF" />
+        <Button android:id="@+id/navCanvasBtn" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="Холст" android:textSize="12sp" android:backgroundTint="#151C28" android:textColor="#94A3B8" />
+        <Button android:id="@+id/navTerminalBtn" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="Консоль" android:textSize="12sp" android:backgroundTint="#151C28" android:textColor="#94A3B8" />
+        <Button android:id="@+id/navSettingsBtn" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:text="Опции" android:textSize="12sp" android:backgroundTint="#151C28" android:textColor="#94A3B8" />
+    </LinearLayout>
 </LinearLayout>
