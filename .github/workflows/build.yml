@@ -1,4 +1,4 @@
-name: Inspect Source
+name: Inspect Short
 
 on:
   workflow_dispatch:
@@ -7,12 +7,12 @@ jobs:
   inspect:
     runs-on: ubuntu-latest
     steps:
-      - name: Inspect llama.android files
+      - name: Get Engine Methods
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh repo clone PrismML-Eng/llama.cpp -- --depth 1 --branch prism
-          echo "=== FILES TREE ==="
-          find llama.cpp/examples/llama.android -maxdepth 8 -not -path '*/.*'
-          echo "=== KOTLIN CODE ==="
-          find llama.cpp/examples/llama.android -name "*.kt" -exec head -n 300 {} +
+          echo "=== KT FILES ==="
+          find llama.cpp/examples/llama.android -name "*.kt"
+          echo "=== ENGINE BRIDGE ==="
+          grep -rnE "class |fun |external " llama.cpp/examples/llama.android/app/src/main/java/
