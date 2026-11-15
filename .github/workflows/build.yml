@@ -40,20 +40,16 @@ jobs:
           BASE="llama.cpp/examples/llama.android/app/src/main"
           APP_DIR="llama.cpp/examples/llama.android/app"
           
-          # Копируем build.gradle с зависимостями Room
           cp .github/workflows/app_build.gradle.kts "$APP_DIR/build.gradle.kts"
           
-          # Копируем код
           cp .github/workflows/activity_main.xml "$BASE/res/layout/activity_main.xml"
           cp .github/workflows/MainActivity.kt "$BASE/java/com/example/llama/MainActivity.kt"
           cp .github/workflows/ModelDatabase.kt "$BASE/java/com/example/llama/ModelDatabase.kt"
           cp .github/workflows/MessageAdapter.kt "$BASE/java/com/example/llama/MessageAdapter.kt"
           
-          # Копируем пузыри чата
           cp .github/workflows/item_message_user.xml "$BASE/res/layout/item_message_user.xml"
           cp .github/workflows/item_message_assistant.xml "$BASE/res/layout/item_message_assistant.xml"
           
-          # Копируем ВСЕ фоны и фоны пузырей (ДОБАВЛЕНЫ НОВЫЕ)
           cp .github/workflows/bg_bubble_user.xml "$BASE/res/drawable/bg_bubble_user.xml"
           cp .github/workflows/bg_bubble_ai.xml "$BASE/res/drawable/bg_bubble_ai.xml"
           cp .github/workflows/bg_input.xml "$BASE/res/drawable/bg_input.xml"
@@ -75,8 +71,18 @@ jobs:
           cd llama.cpp/examples/llama.android
           ./gradlew assembleDebug -Pandroid.injected.build.abi=arm64-v8a
 
+      # ТВОЯ ГЕНИАЛЬНАЯ ИДЕЯ: Ищем файл, копируем в отдельную папку
+      - name: Find and Copy APK
+        run: |
+          echo "Ищем файлы APK..."
+          find . -name "*.apk" -type f
+          mkdir -p final_apk
+          find . -name "*.apk" -type f -exec cp {} final_apk/ \;
+          echo "Содержимое папки final_apk:"
+          ls -la final_apk/
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Bonsai-Studio-New
-          path: llama.cpp/examples/llama.android/app/build/outputs/apk/debug/*.apk
+          path: final_apk/*.apk
