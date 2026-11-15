@@ -43,7 +43,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var messagesRv: RecyclerView
     private lateinit var userInputEt: EditText
     private lateinit var actionBtn: Button
-    private lateinit var thinkModeBtn: TextView // Изменено на TextView
+    private lateinit var thinkModeBtn: TextView
     private lateinit var canvasEditorEt: EditText
     private lateinit var canvasWebView: WebView
     private lateinit var terminalOutputTv: TextView
@@ -90,7 +90,6 @@ class MainActivity : AppCompatActivity() {
         val tabTerminal = findViewById<View>(R.id.tabTerminal)
         val tabSettings = findViewById<View>(R.id.tabSettings)
 
-        // Изменено на View, так как теперь это LinearLayout
         val navChat = findViewById<View>(R.id.navChatBtn)
         val navCanvas = findViewById<View>(R.id.navCanvasBtn)
         val navTerminal = findViewById<View>(R.id.navTerminalBtn)
@@ -102,7 +101,6 @@ class MainActivity : AppCompatActivity() {
             tabTerminal.visibility = if (index == 2) View.VISIBLE else View.GONE
             tabSettings.visibility = if (index == 3) View.VISIBLE else View.GONE
 
-            // Меняем фон в зависимости от выбора
             navChat.setBackgroundResource(if (index == 0) R.drawable.bg_nav_selected else android.R.color.transparent)
             navCanvas.setBackgroundResource(if (index == 1) R.drawable.bg_nav_selected else android.R.color.transparent)
             navTerminal.setBackgroundResource(if (index == 2) R.drawable.bg_nav_selected else android.R.color.transparent)
@@ -202,22 +200,12 @@ class MainActivity : AppCompatActivity() {
             updateRamStats()
         }
         
+        // ИСПРАВЛЕНО: Теперь не вылетает, а просит перезагрузить модель
         findViewById<Button>(R.id.applySystemBtn).setOnClickListener {
             if (isModelReady) {
-                lifecycleScope.launch(Dispatchers.Default) {
-                    try {
-                        engine.setSystemPrompt(systemPromptEt.text.toString())
-                        withContext(Dispatchers.Main) { 
-                            Toast.makeText(this@MainActivity, "Роль обновлена!", Toast.LENGTH_SHORT).show() 
-                        }
-                    } catch (e: Exception) {
-                        withContext(Dispatchers.Main) { 
-                            Toast.makeText(this@MainActivity, "Ошибка JNI: ${e.message}", Toast.LENGTH_LONG).show() 
-                        }
-                    }
-                }
+                Toast.makeText(this, "Промпт сохранен! Перезагрузите модель для применения.", Toast.LENGTH_LONG).show()
             } else {
-                Toast.makeText(this, "Сначала загрузите модель", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Модель еще не загружена. Промпт применится при запуске.", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -237,10 +225,11 @@ class MainActivity : AppCompatActivity() {
         actionBtn.text = "⏹"
         actionBtn.setBackgroundColor(0xFFDC2626.toInt())
 
-        val promptToSend = if (thinkMode == 0) {
-            "Ответь на это БЕЗ размышлений, сразу дай готовый ответ: $rawInput"
-        } else {
-            rawInput 
+        // ИСПРАВЛЕНО: Используем нативные токены для Qwen/DeepSeek
+        val promptToSend = when (thinkMode) {
+            0 -> "$rawInput /no_think"
+            2 -> "$rawInput /think"
+            else -> rawInput 
         }
         
         val startTime = System.currentTimeMillis()
@@ -339,7 +328,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
-        // generationJob?.cancel() // Убрано, чтобы модель дописывала ответ в фоне
+        // Убрано, чтобы модель дописывала ответ в фоне
         super.onStop()
     }
 
