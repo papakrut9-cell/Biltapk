@@ -1,17 +1,64 @@
-- name: Clone PrismML and Copy UI
-  env:
-    GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  run: |
-    gh repo clone PrismML-Eng/llama.cpp -- --depth 1 --branch prism
-    BASE="llama.cpp/examples/llama.android/app/src/main"
-    
-    # Копируем код
-    cp .github/workflows/activity_main.xml "$BASE/res/layout/activity_main.xml"
-    cp .github/workflows/MainActivity.kt "$BASE/java/com/example/llama/MainActivity.kt"
-    cp .github/workflows/ModelDatabase.kt "$BASE/java/com/example/llama/ModelDatabase.kt"
-    
-    # Копируем пузыри чата и фоны
-    cp .github/workflows/item_message_user.xml "$BASE/res/layout/item_message_user.xml"
-    cp .github/workflows/item_message_assistant.xml "$BASE/res/layout/item_message_assistant.xml"
-    cp .github/workflows/bg_bubble_user.xml "$BASE/res/drawable/bg_bubble_user.xml"
-    cp .github/workflows/bg_bubble_ai.xml "$BASE/res/drawable/bg_bubble_ai.xml"
+name: Build Bonsai Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Custom UI
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          cmdline-tools-version: 'latest'
+
+      - name: Accept Android SDK Licenses
+        run: |
+          yes | sdkmanager --licenses > /dev/null
+
+      - name: Install NDK and CMake
+        run: |
+          sdkmanager "ndk;26.3.11579264" "cmake;3.31.6"
+
+      - name: Clone PrismML and Copy UI
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh repo clone PrismML-Eng/llama.cpp -- --depth 1 --branch prism
+          BASE="llama.cpp/examples/llama.android/app/src/main"
+          
+          # Копируем код
+          cp .github/workflows/activity_main.xml "$BASE/res/layout/activity_main.xml"
+          cp .github/workflows/MainActivity.kt "$BASE/java/com/example/llama/MainActivity.kt"
+          cp .github/workflows/ModelDatabase.kt "$BASE/java/com/example/llama/ModelDatabase.kt"
+          
+          # Копируем пузыри чата и фоны
+          cp .github/workflows/item_message_user.xml "$BASE/res/layout/item_message_user.xml"
+          cp .github/workflows/item_message_assistant.xml "$BASE/res/layout/item_message_assistant.xml"
+          cp .github/workflows/bg_bubble_user.xml "$BASE/res/drawable/bg_bubble_user.xml"
+          cp .github/workflows/bg_bubble_ai.xml "$BASE/res/drawable/bg_bubble_ai.xml"
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./llama.cpp/examples/llama.android/gradlew
+
+      - name: Build APK
+        run: |
+          cd llama.cpp/examples/llama.android
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bonsai-Studio-New
+          path: llama.cpp/examples/llama.android/app/build/outputs/apk/debug/*.apk
