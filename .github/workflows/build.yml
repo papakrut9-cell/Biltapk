@@ -65,8 +65,18 @@ jobs:
           cd llama.cpp/examples/llama.android
           ./gradlew assembleDebug -Pandroid.injected.build.abi=arm64-v8a
 
+      # ВОТ ТУТ ТВОЯ ИДЕЯ: Ищем, копируем в отдельную папку и показываем в логе
+      - name: Find and Copy APK
+        run: |
+          echo "Ищем файлы APK..."
+          find . -name "*.apk" -type f
+          mkdir -p final_apk
+          find . -name "*.apk" -type f -exec cp {} final_apk/ \;
+          echo "Содержимое папки final_apk:"
+          ls -la final_apk/
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Bonsai-Studio-New
-          path: llama.cpp/examples/llama.android/app/build/outputs/apk/debug/*.apk
+          path: final_apk/*.apk
