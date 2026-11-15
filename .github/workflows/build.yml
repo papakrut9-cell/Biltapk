@@ -38,6 +38,9 @@ jobs:
           gh repo clone PrismML-Eng/llama.cpp -- --depth 1 --branch prism
           export CMAKE_ARGS="-DGGML_OPENMP=OFF -DLLAMA_CURL=OFF"
           BASE="llama.cpp/examples/llama.android/app/src/main"
+          APP_DIR="llama.cpp/examples/llama.android/app"
+          
+          cp .github/workflows/app_build.gradle.kts "$APP_DIR/build.gradle.kts"
           
           cp .github/workflows/activity_main.xml "$BASE/res/layout/activity_main.xml"
           cp .github/workflows/MainActivity.kt "$BASE/java/com/example/llama/MainActivity.kt"
