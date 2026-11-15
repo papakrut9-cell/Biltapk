@@ -40,12 +40,16 @@ jobs:
           BASE="llama.cpp/examples/llama.android/app/src/main"
           APP_DIR="llama.cpp/examples/llama.android/app"
           
+          # Копируем build.gradle с зависимостями Room
           cp .github/workflows/app_build.gradle.kts "$APP_DIR/build.gradle.kts"
           
+          # Копируем наш код
           cp .github/workflows/activity_main.xml "$BASE/res/layout/activity_main.xml"
           cp .github/workflows/MainActivity.kt "$BASE/java/com/example/llama/MainActivity.kt"
           cp .github/workflows/ModelDatabase.kt "$BASE/java/com/example/llama/ModelDatabase.kt"
+          cp .github/workflows/MessageAdapter.kt "$BASE/java/com/example/llama/MessageAdapter.kt"
           
+          # Копируем пузыри чата и фоны
           cp .github/workflows/item_message_user.xml "$BASE/res/layout/item_message_user.xml"
           cp .github/workflows/item_message_assistant.xml "$BASE/res/layout/item_message_assistant.xml"
           cp .github/workflows/bg_bubble_user.xml "$BASE/res/drawable/bg_bubble_user.xml"
