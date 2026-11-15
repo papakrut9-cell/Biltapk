@@ -90,7 +90,7 @@
                 android:textSize="12sp" />
         </LinearLayout>
         
-        <!-- Поле ввода -->
+        <!-- Поле ввода (Исправлено: кнопка прижата к низу) -->
         <LinearLayout 
             android:layout_width="match_parent" 
             android:layout_height="wrap_content" 
@@ -113,6 +113,7 @@
                 android:layout_width="52dp" 
                 android:layout_height="52dp" 
                 android:layout_marginStart="8dp" 
+                android:layout_gravity="bottom" 
                 android:text="➤" 
                 android:textSize="20sp" 
                 android:textColor="#FFFFFF" 
@@ -244,7 +245,6 @@
             android:layout_height="wrap_content" 
             android:orientation="vertical">
             
-            <!-- Карточка памяти -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -309,7 +309,7 @@
         </LinearLayout>
     </ScrollView>
 
-    <!-- Нижняя навигация (Стильная) -->
+    <!-- Нижняя навигация -->
     <LinearLayout 
         android:layout_width="match_parent" 
         android:layout_height="64dp" 
