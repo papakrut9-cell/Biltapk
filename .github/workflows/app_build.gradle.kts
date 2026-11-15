@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
-    // Обновлено до версии, совместимой с Kotlin 2.3.0
     id("com.google.devtools.ksp") version "2.3.6"
 }
 
@@ -24,20 +23,12 @@ android {
 
     buildTypes {
         debug {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android.txt"),
-                "proguard-rules.pro"
-            )
+            isMinifyEnabled = false // ОТКЛЮЧИЛИ
+            isShrinkResources = false // ОТКЛЮЧИЛИ
         }
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            isMinifyEnabled = false // ОТКЛЮЧИЛИ
+            isShrinkResources = false // ОТКЛЮЧИЛИ
         }
     }
     compileOptions {
@@ -54,7 +45,6 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
-    // --- Room Database ---
     implementation("androidx.room:room-runtime:2.7.0")
     implementation("androidx.room:room-ktx:2.7.0")
     ksp("androidx.room:room-compiler:2.7.0")
