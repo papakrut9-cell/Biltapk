@@ -1,7 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
-    id("com.google.devtools.ksp") version "2.0.21-1.0.28"
+    // Обновлено до версии, совместимой с Kotlin 2.3.0
+    id("com.google.devtools.ksp") version "2.3.6"
 }
 
 android {
@@ -53,7 +54,7 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
-    // --- Room Database (обновлено до 2.7.0) ---
+    // --- Room Database ---
     implementation("androidx.room:room-runtime:2.7.0")
     implementation("androidx.room:room-ktx:2.7.0")
     ksp("androidx.room:room-compiler:2.7.0")
