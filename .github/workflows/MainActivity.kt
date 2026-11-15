@@ -43,7 +43,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var messagesRv: RecyclerView
     private lateinit var userInputEt: EditText
     private lateinit var actionBtn: Button
-    private lateinit var thinkModeBtn: Button
+    private lateinit var thinkModeBtn: TextView // Изменено на TextView
     private lateinit var canvasEditorEt: EditText
     private lateinit var canvasWebView: WebView
     private lateinit var terminalOutputTv: TextView
@@ -90,10 +90,11 @@ class MainActivity : AppCompatActivity() {
         val tabTerminal = findViewById<View>(R.id.tabTerminal)
         val tabSettings = findViewById<View>(R.id.tabSettings)
 
-        val navChat = findViewById<Button>(R.id.navChatBtn)
-        val navCanvas = findViewById<Button>(R.id.navCanvasBtn)
-        val navTerminal = findViewById<Button>(R.id.navTerminalBtn)
-        val navSettings = findViewById<Button>(R.id.navSettingsBtn)
+        // Изменено на View, так как теперь это LinearLayout
+        val navChat = findViewById<View>(R.id.navChatBtn)
+        val navCanvas = findViewById<View>(R.id.navCanvasBtn)
+        val navTerminal = findViewById<View>(R.id.navTerminalBtn)
+        val navSettings = findViewById<View>(R.id.navSettingsBtn)
 
         fun selectTab(index: Int) {
             tabChat.visibility = if (index == 0) View.VISIBLE else View.GONE
@@ -101,12 +102,11 @@ class MainActivity : AppCompatActivity() {
             tabTerminal.visibility = if (index == 2) View.VISIBLE else View.GONE
             tabSettings.visibility = if (index == 3) View.VISIBLE else View.GONE
 
-            val active = 0xFF2563EB.toInt()
-            val inactive = 0xFF151C28.toInt()
-            navChat.setBackgroundColor(if (index == 0) active else inactive)
-            navCanvas.setBackgroundColor(if (index == 1) active else inactive)
-            navTerminal.setBackgroundColor(if (index == 2) active else inactive)
-            navSettings.setBackgroundColor(if (index == 3) active else inactive)
+            // Меняем фон в зависимости от выбора
+            navChat.setBackgroundResource(if (index == 0) R.drawable.bg_nav_selected else android.R.color.transparent)
+            navCanvas.setBackgroundResource(if (index == 1) R.drawable.bg_nav_selected else android.R.color.transparent)
+            navTerminal.setBackgroundResource(if (index == 2) R.drawable.bg_nav_selected else android.R.color.transparent)
+            navSettings.setBackgroundResource(if (index == 3) R.drawable.bg_nav_selected else android.R.color.transparent)
             
             if (index == 3) updateRamStats()
         }
@@ -124,7 +124,7 @@ class MainActivity : AppCompatActivity() {
             } else if (isGenerating) {
                 generationJob?.cancel()
                 isGenerating = false
-                actionBtn.text = "Отправить"
+                actionBtn.text = "➤"
                 actionBtn.setBackgroundColor(0xFF2563EB.toInt())
             } else {
                 sendMessage()
@@ -134,20 +134,33 @@ class MainActivity : AppCompatActivity() {
         thinkModeBtn.setOnClickListener {
             thinkMode = (thinkMode + 1) % 3
             thinkModeBtn.text = when (thinkMode) {
-                0 -> "Думать: ВЫКЛ"
-                1 -> "Думать: АВТО"
-                else -> "Думать: ВКЛ"
+                0 -> "💭 Думать: ВЫКЛ"
+                1 -> "💭 Думать: АВТО"
+                else -> "💭 Думать: ВКЛ"
             }
         }
 
-        findViewById<Button>(R.id.openLastCodeBtn).setOnClickListener {
+        findViewById<TextView>(R.id.openLastCodeBtn).setOnClickListener {
             val lastAi = messages.lastOrNull { !it.isUser }?.content ?: ""
-            val codeBlock = Regex("```[a-zA-Z]*\\n([\\s\\S]*?)```").find(lastAi)?.groupValues?.get(1) ?: lastAi
-            if (codeBlock.isNotBlank()) {
-                canvasEditorEt.setText(codeBlock.trim())
-                findViewById<Button>(R.id.navCanvasBtn).performClick()
+            val cleanAi = lastAi.replace(Regex("<think>[\\s\\S]*?</think>"), "").trim()
+            
+            val startIndex = cleanAi.indexOf("```")
+            val codeBlock = if (startIndex != -1) {
+                var code = cleanAi.substring(startIndex)
+                code = code.replaceFirst(Regex("^```[a-zA-Z]*\\n?"), "")
+                if (code.contains("```")) {
+                    code = code.substringBefore("```")
+                }
+                code.trim()
             } else {
-                Toast.makeText(this, "Нет кода в ответе", Toast.LENGTH_SHORT).show()
+                cleanAi
+            }
+
+            if (codeBlock.isNotBlank()) {
+                canvasEditorEt.setText(codeBlock)
+                findViewById<View>(R.id.navCanvasBtn).performClick()
+            } else {
+                Toast.makeText(this, "Нет кода", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -183,7 +196,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.selectNewModelBtn).setOnClickListener { getContent.launch(arrayOf("*/*")) }
-        
         findViewById<Button>(R.id.clearChatBtn).setOnClickListener {
             messages.clear()
             messageAdapter.notifyDataSetChanged()
@@ -193,9 +205,19 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.applySystemBtn).setOnClickListener {
             if (isModelReady) {
                 lifecycleScope.launch(Dispatchers.Default) {
-                    engine.setSystemPrompt(systemPromptEt.text.toString())
-                    withContext(Dispatchers.Main) { Toast.makeText(this@MainActivity, "Роль обновлена!", Toast.LENGTH_SHORT).show() }
+                    try {
+                        engine.setSystemPrompt(systemPromptEt.text.toString())
+                        withContext(Dispatchers.Main) { 
+                            Toast.makeText(this@MainActivity, "Роль обновлена!", Toast.LENGTH_SHORT).show() 
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) { 
+                            Toast.makeText(this@MainActivity, "Ошибка JNI: ${e.message}", Toast.LENGTH_LONG).show() 
+                        }
+                    }
                 }
+            } else {
+                Toast.makeText(this, "Сначала загрузите модель", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -212,13 +234,13 @@ class MainActivity : AppCompatActivity() {
         messagesRv.scrollToPosition(messages.size - 1)
 
         isGenerating = true
-        actionBtn.text = "Стоп"
+        actionBtn.text = "⏹"
         actionBtn.setBackgroundColor(0xFFDC2626.toInt())
 
-        val promptToSend = when (thinkMode) {
-            0 -> "$rawInput /no_think"
-            1 -> "$rawInput /think"
-            else -> rawInput
+        val promptToSend = if (thinkMode == 0) {
+            "Ответь на это БЕЗ размышлений, сразу дай готовый ответ: $rawInput"
+        } else {
+            rawInput 
         }
         
         val startTime = System.currentTimeMillis()
@@ -229,7 +251,7 @@ class MainActivity : AppCompatActivity() {
                 .onCompletion {
                     withContext(Dispatchers.Main) {
                         isGenerating = false
-                        actionBtn.text = "Отправить"
+                        actionBtn.text = "➤"
                         actionBtn.setBackgroundColor(0xFF2563EB.toInt())
                         updateRamStats()
                     }
@@ -240,7 +262,7 @@ class MainActivity : AppCompatActivity() {
                     val elapsedSec = ((System.currentTimeMillis() - startTime) / 1000.0).coerceAtLeast(0.1)
                     val tps = String.format("%.1f", tokenCount / elapsedSec)
                     withContext(Dispatchers.Main) {
-                        speedTv.text = "$tps ток/с"
+                        speedTv.text = "$tps т/с"
                         if (messages.isNotEmpty() && !messages.last().isUser) {
                             messages[messages.size - 1] = messages.last().copy(content = lastAssistantMsg.toString())
                             messageAdapter.notifyItemChanged(messages.size - 1)
@@ -290,8 +312,8 @@ class MainActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     isModelReady = true
                     actionBtn.isEnabled = true
-                    actionBtn.text = "Отправить"
-                    userInputEt.hint = "Сообщение..."
+                    actionBtn.text = "➤"
+                    userInputEt.hint = "Спросите Bonsai..."
                     statusTitleTv.text = "Bonsai • ${metadata?.basic?.sizeLabel ?: "Ready"}"
                     updateRamStats()
                 }
@@ -317,7 +339,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
-        generationJob?.cancel()
+        // generationJob?.cancel() // Убрано, чтобы модель дописывала ответ в фоне
         super.onStop()
     }
 
