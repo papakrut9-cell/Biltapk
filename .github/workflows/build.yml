@@ -1,18 +1,18 @@
-name: Inspect Short
+name: Read Engine API
 
 on:
   workflow_dispatch:
 
 jobs:
-  inspect:
+  read:
     runs-on: ubuntu-latest
     steps:
-      - name: Get Engine Methods
+      - name: Print Engine and UI
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh repo clone PrismML-Eng/llama.cpp -- --depth 1 --branch prism
-          echo "=== KT FILES ==="
-          find llama.cpp/examples/llama.android -name "*.kt"
-          echo "=== ENGINE BRIDGE ==="
-          grep -rnE "class |fun |external " llama.cpp/examples/llama.android/app/src/main/java/
+          echo "=== ENGINE INTERFACE ==="
+          cat llama.cpp/examples/llama.android/lib/src/main/java/com/arm/aichat/InferenceEngine.kt
+          echo "=== MAIN ACTIVITY ==="
+          cat llama.cpp/examples/llama.android/app/src/main/java/com/example/llama/MainActivity.kt
