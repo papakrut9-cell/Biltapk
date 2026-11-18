@@ -35,6 +35,48 @@ class MessageAdapter(private val messages: List<Message>) : RecyclerView.Adapter
             holder.textView.text = message.content
         } else if (holder is AssistantMessageViewHolder) {
             val rawText = message.content
-            val thinkStart = rawText.indexOf(" FTC
-    
-    // APPEND_MARKER_MESSAGEADAPTER_END
+            val thinkStart = rawText.indexOf("<think>")
+            val thinkEnd = rawText.indexOf("</think>")
+
+            if (thinkStart != -1 && thinkEnd != -1) {
+                val thought = rawText.substring(thinkStart + 7, thinkEnd).trim()
+                val answer = rawText.substring(thinkEnd + 8).trim()
+                holder.thinkContainer.visibility = View.VISIBLE
+                holder.thinkContent.text = thought
+                holder.thinkHeader.text = "Показать размышления"
+                holder.textView.text = answer
+                holder.thinkHeader.setOnClickListener {
+                    if (holder.thinkContent.visibility == View.GONE) {
+                        holder.thinkContent.visibility = View.VISIBLE
+                        holder.thinkHeader.text = "Скрыть размышления"
+                    } else {
+                        holder.thinkContent.visibility = View.GONE
+                        holder.thinkHeader.text = "Показать размышления"
+                    }
+                }
+            } else if (thinkStart != -1) {
+                holder.thinkContainer.visibility = View.VISIBLE
+                holder.thinkContent.visibility = View.VISIBLE
+                holder.thinkHeader.text = "Модель размышляет..."
+                holder.thinkContent.text = rawText.substring(thinkStart + 7).trim()
+                holder.textView.text = ""
+            } else {
+                holder.thinkContainer.visibility = View.GONE
+                holder.textView.text = rawText
+            }
+        }
+    }
+
+    override fun getItemCount(): Int = messages.size
+
+    class UserMessageViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val textView: TextView = view.findViewById(R.id.msg_content)
+    }
+
+    class AssistantMessageViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val textView: TextView = view.findViewById(R.id.msg_content)
+        val thinkContainer: LinearLayout = view.findViewById(R.id.thinkContainer)
+        val thinkHeader: TextView = view.findViewById(R.id.thinkHeader)
+        val thinkContent: TextView = view.findViewById(R.id.thinkContent)
+    }
+}

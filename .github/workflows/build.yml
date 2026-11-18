@@ -39,24 +39,13 @@ jobs:
           export CMAKE_ARGS="-DGGML_OPENMP=OFF -DLLAMA_CURL=OFF"
           BASE="llama.cpp/examples/llama.android/app/src/main"
           APP_DIR="llama.cpp/examples/llama.android/app"
-          
-          cp .github/workflows/app_build.gradle.kts "$APP_DIR/build.gradle.kts"
-          
-          cp .github/workflows/activity_main.xml "$BASE/res/layout/activity_main.xml"
-          cp .github/workflows/MainActivity.kt "$BASE/java/com/example/llama/MainActivity.kt"
-          cp .github/workflows/ModelDatabase.kt "$BASE/java/com/example/llama/ModelDatabase.kt"
-          cp .github/workflows/MessageAdapter.kt "$BASE/java/com/example/llama/MessageAdapter.kt"
-          
-          cp .github/workflows/item_message_user.xml "$BASE/res/layout/item_message_user.xml"
-          cp .github/workflows/item_message_assistant.xml "$BASE/res/layout/item_message_assistant.xml"
-          
-          cp .github/workflows/bg_bubble_user.xml "$BASE/res/drawable/bg_bubble_user.xml"
-          cp .github/workflows/bg_bubble_ai.xml "$BASE/res/drawable/bg_bubble_ai.xml"
-          cp .github/workflows/bg_input.xml "$BASE/res/drawable/bg_input.xml"
-          cp .github/workflows/bg_chip.xml "$BASE/res/drawable/bg_chip.xml"
-          cp .github/workflows/bg_badge.xml "$BASE/res/drawable/bg_badge.xml"
-          cp .github/workflows/bg_nav_selected.xml "$BASE/res/drawable/bg_nav_selected.xml"
-          cp .github/workflows/bg_card.xml "$BASE/res/drawable/bg_card.xml"
+
+          mkdir -p "$BASE/java/com/example/llama" "$BASE/res/layout" "$BASE/res/drawable"
+
+          cp ui-overlay/app/build.gradle.kts "$APP_DIR/build.gradle.kts"
+          cp ui-overlay/src/main/java/com/example/llama/*.kt "$BASE/java/com/example/llama/"
+          cp ui-overlay/src/main/res/layout/*.xml "$BASE/res/layout/"
+          cp ui-overlay/src/main/res/drawable/*.xml "$BASE/res/drawable/"
 
       - name: Grant execute permission for gradlew
         run: chmod +x ./llama.cpp/examples/llama.android/gradlew
