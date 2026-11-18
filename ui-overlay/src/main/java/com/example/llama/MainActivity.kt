@@ -193,7 +193,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        findViewById(R.id.openLastCodeBtn)
         findViewById<TextView>(R.id.openLastCodeBtn).setOnClickListener {
             val lastAi = messageAdapter.currentList.lastOrNull { !it.isUser }?.content ?: ""
             val cleanAi = lastAi.replace(Regex("</think>"), "").trim()
@@ -234,7 +233,7 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Код скопирован", Toast.LENGTH_SHORT).show()
         }
 
-        val termInput = findViewById(R.id.terminalInputEt)
+        val termInput = findViewById<EditText>(R.id.terminalInputEt)
         findViewById<Button>(R.id.terminalRunBtn).setOnClickListener {
             val cmd = termInput.text.toString().trim()
             if (cmd.isNotEmpty()) {
@@ -257,7 +256,6 @@ class MainActivity : AppCompatActivity() {
                     }
                     withContext(Dispatchers.Main) {
                         terminalOutputTv.append(out + "\n")
-                        (terminalOutputTv.parent as? android.view.ViewGroup)?.let { _ -> }
                         terminalOutputTv.post { (terminalOutputTv.parent as? ScrollView)?.fullScroll(View.FOCUS_DOWN) }
                     }
                 }
