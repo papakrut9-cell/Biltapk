@@ -43,12 +43,12 @@ class MessageAdapter(private val messages: List<Message>) : RecyclerView.Adapter
                 val answer = rawText.substring(thinkEnd + 8).trim()
                 holder.thinkContainer.visibility = View.VISIBLE
                 holder.thinkContent.text = thought
-                holder.thinkHeader.text = "Показать размышления"
+                holder.thinkHeader.text = "💭 Показать размышления ˅"
                 holder.textView.text = answer
                 holder.thinkHeader.setOnClickListener {
                     if (holder.thinkContent.visibility == View.GONE) {
                         holder.thinkContent.visibility = View.VISIBLE
-                        holder.thinkHeader.text = "Скрыть размышления"
+                        holder.thinkHeader.text = "💭 Скрыть размышления ˄"
                     } else {
                         holder.thinkContent.visibility = View.GONE
                         holder.thinkHeader.text = "Показать размышления"
@@ -57,7 +57,7 @@ class MessageAdapter(private val messages: List<Message>) : RecyclerView.Adapter
             } else if (thinkStart != -1) {
                 holder.thinkContainer.visibility = View.VISIBLE
                 holder.thinkContent.visibility = View.VISIBLE
-                holder.thinkHeader.text = "Модель размышляет..."
+                holder.thinkHeader.text = "💭 Модель размышляет..."
                 holder.thinkContent.text = rawText.substring(thinkStart + 7).trim()
                 holder.textView.text = ""
             } else {
