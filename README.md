@@ -5,9 +5,19 @@
 ## Структура
 
 ```
-ui-overlay/
+project/                                  # Конфигурация проекта (наша, не из PrismML)
+├── settings.gradle.kts                   # Модули :app и :lib
+├── build.gradle.kts                      # Корневой gradle-файл
+├── gradle.properties
+├── gradle/
+│   ├── libs.versions.toml                # Каталог версий (AGP, Kotlin, AndroidX...)
+│   └── wrapper/gradle-wrapper.properties # Версия Gradle (8.14.3)
+└── app/src/main/
+    └── AndroidManifest.xml
+
+ui-overlay/                               # UI-слой приложения
 ├── app/
-│   └── build.gradle.kts                  # Gradle-конфиг приложения
+│   └── build.gradle.kts                  # Gradle-конфиг приложения (Room, KSP)
 └── src/main/
     ├── java/com/example/llama/
     │   ├── MainActivity.kt               # Главный экран, 4 вкладки
@@ -30,6 +40,9 @@ ui-overlay/
 
 ## Сборка
 
-Workflow ```.github/workflows/build.yml``` клонирует ```PrismML-Eng/llama.cpp``` (ветка ```prism```), копирует файлы из ```ui-overlay/``` в Android-проект и собирает debug-APK (arm64-v8a). Готовый APK появляется в артефактах сборки (```Bonsai-Studio-New```).
+Workflow ```.github/workflows/build.yml``` при каждом push в ```main```:
+1. Клонирует ```PrismML-Eng/llama.cpp``` (ветка ```prism```) — оттуда берётся только нативная библиотека llama.cpp (модуль ```:lib```) и gradle-wrapper.
+2. Копирует поверх конфигурацию из ```project/``` и UI из ```ui-overlay/```.
+3. Собирает debug-APK (arm64-v8a) и выкладывает артефактом ```Bonsai-Studio-New```.
 
-Запуск сборки: вкладка **Actions** → **Build Bonsai Android APK** → **Run workflow**.
+Запуск сборки вручную: вкладка **Actions** → **Build Bonsai Android APK** → **Run workflow**.

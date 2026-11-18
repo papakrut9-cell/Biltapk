@@ -31,17 +31,26 @@ jobs:
         run: |
           sdkmanager "ndk;26.1.10909125" "cmake;3.31.6"
 
-      - name: Clone PrismML and Copy UI
+      - name: Clone PrismML and Copy Project Config + UI
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh repo clone PrismML-Eng/llama.cpp -- --depth 1 --branch prism
           export CMAKE_ARGS="-DGGML_OPENMP=OFF -DLLAMA_CURL=OFF"
-          BASE="llama.cpp/examples/llama.android/app/src/main"
-          APP_DIR="llama.cpp/examples/llama.android/app"
+          P="llama.cpp/examples/llama.android"
 
+          # Конфигурация проекта — наша, из этого репозитория
+          cp project/settings.gradle.kts                       "$P/settings.gradle.kts"
+          cp project/build.gradle.kts                          "$P/build.gradle.kts"
+          cp project/gradle.properties                         "$P/gradle.properties"
+          cp project/gradle/libs.versions.toml                 "$P/gradle/libs.versions.toml"
+          cp project/gradle/wrapper/gradle-wrapper.properties  "$P/gradle/wrapper/gradle-wrapper.properties"
+          cp project/app/src/main/AndroidManifest.xml          "$P/app/src/main/AndroidManifest.xml"
+
+          # UI-слой — тоже наш
+          BASE="$P/app/src/main"
+          APP_DIR="$P/app"
           mkdir -p "$BASE/java/com/example/llama" "$BASE/res/layout" "$BASE/res/drawable"
-
           cp ui-overlay/app/build.gradle.kts "$APP_DIR/build.gradle.kts"
           cp ui-overlay/src/main/java/com/example/llama/*.kt "$BASE/java/com/example/llama/"
           cp ui-overlay/src/main/res/layout/*.xml "$BASE/res/layout/"
