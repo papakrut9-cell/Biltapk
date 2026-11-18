@@ -12,23 +12,26 @@ android {
         applicationId = "com.example.llama.aichat"
         minSdk = 33
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
     }
 
     buildTypes {
         debug {
-            isMinifyEnabled = false // ОТКЛЮЧИЛИ
-            isShrinkResources = false // ОТКЛЮЧИЛИ
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
         release {
-            isMinifyEnabled = false // ОТКЛЮЧИЛИ
-            isShrinkResources = false // ОТКЛЮЧИЛИ
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
     compileOptions {

@@ -10,6 +10,14 @@ data class LocalModel(
     val size: Long
 )
 
+@Entity(tableName = "chat_messages")
+data class ChatMessage(
+    @PrimaryKey val id: String,
+    val content: String,
+    val isUser: Boolean,
+    val timestamp: Long
+)
+
 @Dao
 interface ModelDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -17,11 +25,27 @@ interface ModelDao {
 
     @Query("SELECT * FROM my_models")
     suspend fun getAllModels(): List<LocalModel>
+
+    @Delete
+    suspend fun deleteModel(model: LocalModel)
 }
 
-@Database(entities = [LocalModel::class], version = 1, exportSchema = false)
+@Dao
+interface ChatDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMessage(message: ChatMessage)
+
+    @Query("SELECT * FROM chat_messages ORDER BY timestamp ASC")
+    suspend fun getAllMessages(): List<ChatMessage>
+
+    @Query("DELETE FROM chat_messages")
+    suspend fun clearAll()
+}
+
+@Database(entities = [LocalModel::class, ChatMessage::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun modelDao(): ModelDao
+    abstract fun chatDao(): ChatDao
 
     companion object {
         @Volatile
@@ -34,6 +58,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "bonsai_models_db"
                 )
+                // Список моделей можно перекачать заново, деградация безопасна
                 .fallbackToDestructiveMigration()
                 .build()
                 INSTANCE = instance
