@@ -50,11 +50,13 @@ jobs:
           # UI-слой — тоже наш
           BASE="$P/app/src/main"
           APP_DIR="$P/app"
-          mkdir -p "$BASE/java/com/example/llama" "$BASE/res/layout" "$BASE/res/drawable"
+          mkdir -p "$BASE/java/com/example/llama" "$BASE/res/layout" "$BASE/res/drawable" "$BASE/res/values" "$BASE/res/anim"
           cp ui-overlay/app/build.gradle.kts "$APP_DIR/build.gradle.kts"
           cp ui-overlay/src/main/java/com/example/llama/*.kt "$BASE/java/com/example/llama/"
           cp ui-overlay/src/main/res/layout/*.xml "$BASE/res/layout/"
           cp ui-overlay/src/main/res/drawable/*.xml "$BASE/res/drawable/"
+          cp ui-overlay/src/main/res/values/*.xml "$BASE/res/values/"
+          cp ui-overlay/src/main/res/anim/*.xml "$BASE/res/anim/"
 
       - name: Grant execute permission for gradlew
         run: chmod +x ./llama.cpp/examples/llama.android/gradlew
@@ -67,9 +69,9 @@ jobs:
       - name: Build APK
         run: |
           cd llama.cpp/examples/llama.android
-          ./gradlew assembleDebug -Pandroid.injected.build.abi=arm64-v8a
+          ./gradlew assembleDebug
 
-      # ТВОЯ ГЕНИАЛЬНАЯ ИДЕЯ: Ищем файл, копируем в отдельную папку
+      # Ищем файл, копируем в отдельную папку
       - name: Find and Copy APK
         run: |
           echo "Ищем файлы APK..."

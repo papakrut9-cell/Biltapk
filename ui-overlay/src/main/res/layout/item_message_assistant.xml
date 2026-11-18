@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="#1E293B"
+        android:background="@color/bg_surface"
         android:padding="8dp"
         android:layout_marginBottom="8dp"
         android:visibility="gone">
@@ -20,16 +20,17 @@
             android:id="@+id/thinkHeader"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="💭 Показать размышления"
-            android:textColor="#94A3B8"
+            android:text="💭 Показать размышления ˅"
+            android:textColor="@color/text_secondary"
             android:textSize="12sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:background="?attr/selectableItemBackground" />
 
         <TextView
             android:id="@+id/thinkContent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="#64748B"
+            android:textColor="@color/text_tertiary"
             android:textSize="12sp"
             android:paddingTop="4dp"
             android:visibility="gone" />
@@ -41,7 +42,15 @@
         android:layout_height="wrap_content"
         android:background="@drawable/bg_bubble_ai"
         android:padding="12dp"
-        android:textColor="#F8FAFC"
+        android:textColor="@color/text_primary"
         android:textSize="15sp"
         android:maxWidth="320dp" />
+    <TextView
+        android:id="@+id/time_tv_assistant"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:layout_marginStart="4dp"
+        android:textColor="@color/text_secondary"
+        android:textSize="10sp" />
 </LinearLayout>
