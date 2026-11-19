@@ -50,7 +50,7 @@
             android:layout_weight="1" 
             android:padding="12dp" 
             android:clipToPadding="false"
-            android:layoutAnimation="@anim/item_fall"/>
+            android:layoutAnimation="@anim/item_fall_layout"/>
         
         <!-- Панель инструментов чата -->
         <LinearLayout 
