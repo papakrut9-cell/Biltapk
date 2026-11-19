@@ -14,8 +14,8 @@ android {
         applicationId = "com.example.llama.aichat"
         minSdk = 33
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = "1.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -32,8 +32,16 @@ android {
             isShrinkResources = false
         }
         release {
-            isMinifyEnabled = false
-            isShrinkResources = false
+            // Обрезаем APK: без нативных .so класс-часть ~5 МБ → <2 МБ,
+            // правила R8 уже есть в proguard-rules.pro (keep com.arm.aichat.**)
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            // Подписываем debug-keystore, чтобы release-APK ставился сразу из артефакта
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
@@ -61,6 +69,9 @@ dependencies {
     // lifecycleScope и корутины приходят транзитивно не всегда — декларируем явно
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+
+    // Splash screen (Theme.SplashScreen / installSplashScreen)
+    implementation("androidx.core:core-splashscreen:1.0.1")
 
     implementation("androidx.room:room-runtime:2.7.0")
     implementation("androidx.room:room-ktx:2.7.0")

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Bonsai Studio</string>
+    <string name="generation_channel_name">Генерация ответа</string>
+    <string name="generation_channel_desc">Удерживает генерацию ответа живой, когда приложение в фоне</string>
+    <string name="generation_notification_title">Bonsai генерирует ответ…</string>
+    <string name="generation_notification_text">Нажмите, чтобы вернуться в приложение</string>
+</resources>
