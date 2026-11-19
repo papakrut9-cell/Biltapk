@@ -70,28 +70,44 @@ jobs:
           echo "sdk.dir=$ANDROID_HOME" > ./llama.cpp/examples/llama.android/local.properties
           echo "cmake.dir=$ANDROID_HOME/cmake/3.31.6" >> ./llama.cpp/examples/llama.android/local.properties
 
-      - name: Build APK (diagnostic, не роняет прогон)
+      - name: Build APK (результат пишем в gradle_exit_code.txt)
         run: |
           cd llama.cpp/examples/llama.android
-          ./gradlew :app:compileDebugKotlin --stacktrace 2>&1 | tee build.log || true
+          ./gradlew assembleDebug --stacktrace 2>&1 | tee build.log
+          echo ${PIPESTATUS[0]} > gradle_exit_code.txt
+        shell: bash -eo pipefail {0}
 
       - name: Prepare diag files
         run: |
           mkdir -p ci-diag
           cp llama.cpp/examples/llama.android/build.log ci-diag/build.log || true
-          cd llama.cpp/examples/llama.android && {
-            echo "=== Ошибки из лога ==="
-            grep -nE "e: |error:|FAILURE|Execution failed|Caused by|Unresolved|Failed to resolve|Could not" build.log | head -80
-            echo ""
-            echo "=== Последние 250 строк ==="
-            tail -250 build.log
-          } > ../../ci-diag/diag.txt || true
+          cp llama.cpp/examples/llama.android/gradle_exit_code.txt ci-diag/ || true
+          CODE=$(cat llama.cpp/examples/llama.android/gradle_exit_code.txt 2>/dev/null || echo 1)
+          if [ "$CODE" = "0" ]; then
+            echo "BUILD OK" > ci-diag/RESULT.txt
+          else
+            {
+              echo "=== gradle exit code: $CODE ==="
+              echo "=== Ошибки из лога ==="
+              grep -nE "e: |error:|FAILURE|Execution failed|Caused by|Unresolved|Failed to resolve|Could not" llama.cpp/examples/llama.android/build.log | head -80
+              echo ""
+              echo "=== Последние 250 строк ==="
+              tail -250 llama.cpp/examples/llama.android/build.log
+            } > ci-diag/RESULT.txt
+          fi
 
       - name: Push diag to ci-logs branch
         run: |
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           git checkout -B ci-logs
-          git add -A
+          git add -A ci-diag
           git commit -m "CI diag: run ${{ github.run_number }} sha ${{ github.sha }}" || echo "nothing to commit"
           git push --force origin ci-logs
+
+      - name: Fail job if gradle failed
+        run: |
+          CODE=$(cat llama.cpp/examples/llama.android/gradle_exit_code.txt 2>/dev/null || echo 1)
+          if [ "$CODE" != "0" ]; then
+            exit "$CODE"
+          fi

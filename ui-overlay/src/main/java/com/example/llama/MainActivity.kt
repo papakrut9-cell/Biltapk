@@ -277,8 +277,14 @@ class MainActivity : AppCompatActivity() {
                 !engineReady -> Toast.makeText(this, "Движок ещё запускается, секунду...", Toast.LENGTH_SHORT).show()
                 !isModelReady -> Toast.makeText(this, "Модель ещё не загружена. Роль применится при выборе модели.", Toast.LENGTH_SHORT).show()
                 else -> {
-                    engine.setSystemPrompt(systemPromptEt.text.toString())
-                    Toast.makeText(this, "Роль применена", Toast.LENGTH_SHORT).show()
+                    lifecycleScope.launch {
+                        try {
+                            engine.setSystemPrompt(systemPromptEt.text.toString())
+                            Toast.makeText(this@MainActivity, "Роль применена", Toast.LENGTH_SHORT).show()
+                        } catch (e: Exception) {
+                            Toast.makeText(this@MainActivity, "Ошибка: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
             }
         }
