@@ -104,7 +104,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         lifecycleScope.launch(Dispatchers.Default) {
-            engine = AiChat.getInferenceEngine(applicationContext)
+            try {
+                engine = AiChat.getInferenceEngine(applicationContext)
+            } catch (e: Throwable) {
+                showStartupError("Ошибка движка: ${e.javaClass.simpleName}: ${e.message}")
+                return@launch
+            }
             withContext(Dispatchers.Main) {
                 engineReady = true
                 if (!isModelReady) actionBtn.text = "📁"
@@ -112,14 +117,52 @@ class MainActivity : AppCompatActivity() {
         }
 
         loadChatHistory()
+        showSavedCrashLog()
         updateRamStats()
         setupNavigation()
         setupControls()
     }
 
+    private fun showStartupError(message: String) {
+        lifecycleScope.launch(Dispatchers.Main) {
+            statusTitleTv.text = "Ошибка"
+            Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun showSavedCrashLog() {
+        val file = BonsaiApp.crashFile
+        if (!file.exists() || file.length() == 0L) return
+        val text = try {
+            file.readText().lines().takeLast(60).joinToString("\n")
+        } catch (_: Exception) {
+            return
+        }
+        lifecycleScope.launch(Dispatchers.Main) {
+            terminalOutputTv.append("\n=== ЛОГ ПРЕДЫДУЩЕГО ПАДЕНИЯ ===\n$text\n=== КОНЕЦ ЛОГА ===\n")
+            Toast.makeText(
+                this@MainActivity,
+                "Обнаружен лог падения — вкладка «Консоль»",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
     private fun loadChatHistory() {
         lifecycleScope.launch(Dispatchers.IO) {
-            val history = db.chatDao().getAllMessages()
+            val history = try {
+                db.chatDao().getAllMessages()
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    statusTitleTv.text = "Ошибка БД"
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Ошибка базы чата: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                return@launch
+            }
             withContext(Dispatchers.Main) {
                 if (history.isNotEmpty()) {
                     messageAdapter.submitList(history.map { Message(it.id, it.content, it.isUser, it.timestamp) }) {
@@ -256,7 +299,7 @@ class MainActivity : AppCompatActivity() {
                     }
                     withContext(Dispatchers.Main) {
                         terminalOutputTv.append(out + "\n")
-                        terminalOutputTv.post { (terminalOutputTv.parent as? ScrollView)?.fullScroll(View.FOCUS_DOWN) }
+                        (terminalOutputTv.parent as? ScrollView)?.fullScroll(View.FOCUS_DOWN)
                     }
                 }
             }
