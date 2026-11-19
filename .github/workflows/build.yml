@@ -5,6 +5,10 @@ on:
   push:
     branches: [ main ]
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -68,8 +72,21 @@ jobs:
 
       - name: Build APK
         run: |
+          set -o pipefail
           cd llama.cpp/examples/llama.android
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --stacktrace 2>&1 | tee build.log
+
+      - name: Publish build log on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f llama.cpp/examples/llama.android/build.log ]; then
+            tail -c 60000 llama.cpp/examples/llama.android/build.log > log_tail.txt || true
+            gh issue create -R "${{ github.repository }}" \
+              --title "CI failure: run ${{ github.run_number }} (${{ github.sha }})" \
+              --body-file log_tail.txt
+          fi
 
       # Ищем файл, копируем в отдельную папку
       - name: Find and Copy APK
