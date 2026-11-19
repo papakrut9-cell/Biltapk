@@ -4,8 +4,6 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
-    paths-ignore:
-      - 'ci-logs/**'
 
 permissions:
   contents: write
@@ -17,9 +15,6 @@ jobs:
     steps:
       - name: Checkout Custom UI
         uses: actions/checkout@v4
-
-      - name: DIAG ONLY MODE
-        run: echo "Предупреждение: build.yml сейчас в диагностическом режиме (собираем только Kotlin, лог кладём в ветку ci-logs)"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -75,37 +70,28 @@ jobs:
           echo "sdk.dir=$ANDROID_HOME" > ./llama.cpp/examples/llama.android/local.properties
           echo "cmake.dir=$ANDROID_HOME/cmake/3.31.6" >> ./llama.cpp/examples/llama.android/local.properties
 
-      - name: Build APK (diagnostic, не падает)
+      - name: Build APK (diagnostic, не роняет прогон)
         run: |
           cd llama.cpp/examples/llama.android
           ./gradlew :app:compileDebugKotlin --stacktrace 2>&1 | tee build.log || true
 
-      - name: Prepare diag
-        if: always()
+      - name: Prepare diag files
         run: |
-          cd llama.cpp/examples/llama.android
-          {
+          mkdir -p ci-diag
+          cp llama.cpp/examples/llama.android/build.log ci-diag/build.log || true
+          cd llama.cpp/examples/llama.android && {
             echo "=== Ошибки из лога ==="
             grep -nE "e: |error:|FAILURE|Execution failed|Caused by|Unresolved|Failed to resolve|Could not" build.log | head -80
             echo ""
             echo "=== Последние 250 строк ==="
             tail -250 build.log
-          } > diag.txt || true
+          } > ../../ci-diag/diag.txt || true
 
       - name: Push diag to ci-logs branch
-        if: always()
         run: |
-          set -e
-          mkdir -p ci-diag
-          cp llama.cpp/examples/llama.android/build.log ci-diag/ || true
-          cp llama.cpp/examples/llama.android/diag.txt ci-diag/ || true
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           git checkout -B ci-logs
           git add -A
           git commit -m "CI diag: run ${{ github.run_number }} sha ${{ github.sha }}" || echo "nothing to commit"
           git push --force origin ci-logs
-
-      - name: Upload APK artifact if present
-        if: success()
-        run: echo "Диагностический режим: полный APK не собирается"
