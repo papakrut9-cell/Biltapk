@@ -4,9 +4,11 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'ci-logs/**'
 
 permissions:
-  contents: read
+  contents: write
   issues: write
 
 jobs:
@@ -15,6 +17,9 @@ jobs:
     steps:
       - name: Checkout Custom UI
         uses: actions/checkout@v4
+
+      - name: DIAG ONLY MODE
+        run: echo "Предупреждение: build.yml сейчас в диагностическом режиме (собираем только Kotlin, лог кладём в ветку ci-logs)"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -70,36 +75,37 @@ jobs:
           echo "sdk.dir=$ANDROID_HOME" > ./llama.cpp/examples/llama.android/local.properties
           echo "cmake.dir=$ANDROID_HOME/cmake/3.31.6" >> ./llama.cpp/examples/llama.android/local.properties
 
-      - name: Build APK
+      - name: Build APK (diagnostic, не падает)
         run: |
-          set -o pipefail
           cd llama.cpp/examples/llama.android
-          ./gradlew assembleDebug --stacktrace 2>&1 | tee build.log
+          ./gradlew :app:compileDebugKotlin --stacktrace 2>&1 | tee build.log || true
 
-      - name: Publish build log on failure
-        if: failure()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare diag
+        if: always()
         run: |
-          if [ -f llama.cpp/examples/llama.android/build.log ]; then
-            tail -c 60000 llama.cpp/examples/llama.android/build.log > log_tail.txt || true
-            gh issue create -R "${{ github.repository }}" \
-              --title "CI failure: run ${{ github.run_number }} (${{ github.sha }})" \
-              --body-file log_tail.txt
-          fi
+          cd llama.cpp/examples/llama.android
+          {
+            echo "=== Ошибки из лога ==="
+            grep -nE "e: |error:|FAILURE|Execution failed|Caused by|Unresolved|Failed to resolve|Could not" build.log | head -80
+            echo ""
+            echo "=== Последние 250 строк ==="
+            tail -250 build.log
+          } > diag.txt || true
 
-      # Ищем файл, копируем в отдельную папку
-      - name: Find and Copy APK
+      - name: Push diag to ci-logs branch
+        if: always()
         run: |
-          echo "Ищем файлы APK..."
-          find . -name "*.apk" -type f
-          mkdir -p final_apk
-          find . -name "*.apk" -type f -exec cp {} final_apk/ \;
-          echo "Содержимое папки final_apk:"
-          ls -la final_apk/
+          set -e
+          mkdir -p ci-diag
+          cp llama.cpp/examples/llama.android/build.log ci-diag/ || true
+          cp llama.cpp/examples/llama.android/diag.txt ci-diag/ || true
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git checkout -B ci-logs
+          git add -A
+          git commit -m "CI diag: run ${{ github.run_number }} sha ${{ github.sha }}" || echo "nothing to commit"
+          git push --force origin ci-logs
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Bonsai-Studio-New
-          path: final_apk/*.apk
+      - name: Upload APK artifact if present
+        if: success()
+        run: echo "Диагностический режим: полный APK не собирается"
