@@ -1,10 +1,13 @@
 package com.example.llama
 
+import android.Manifest
 import android.app.ActivityManager
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.view.HapticFeedbackConstants
@@ -15,6 +18,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
@@ -65,6 +70,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var systemPromptEt: EditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
@@ -268,7 +274,13 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.canvasPreviewModeBtn).setOnClickListener {
             canvasEditorEt.visibility = View.GONE
             canvasWebView.visibility = View.VISIBLE
-            canvasWebView.loadDataWithBaseURL(null, canvasEditorEt.text.toString(), "text/html", "UTF-8", null)
+            canvasWebView.loadDataWithBaseURL(
+                null,
+                canvasPreviewHtml(canvasEditorEt.text.toString()),
+                "text/html",
+                "UTF-8",
+                null
+            )
         }
         findViewById<Button>(R.id.canvasCopyBtn).setOnClickListener {
             val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -425,6 +437,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         isGenerating = true
+        if (!hasNotificationPermission()) {
+            requestNotifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        GenerationService.start(this)
         actionBtn.text = "⏹"
         actionBtn.setBackgroundColor(getColor(R.color.stop_red))
 
@@ -460,6 +476,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun finishGeneration() {
         isGenerating = false
+        GenerationService.stop(this)
         messageAdapter.isStreaming = false
         actionBtn.text = "➤"
         actionBtn.setBackgroundColor(getColor(R.color.accent_blue))
@@ -491,6 +508,48 @@ class MainActivity : AppCompatActivity() {
 
     private val getContent = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         uri?.let { handleSelectedModel(it) }
+    }
+
+    private val requestNotifPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted && isGenerating) GenerationService.start(this)
+        }
+
+    private fun hasNotificationPermission(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+
+    private fun canvasPreviewHtml(code: String): String {
+        val esc = code
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+
+        val marked = esc
+            .replace(Regex("\"[^\"\\n]*\"|'[^'\\n]*'|`[^`]*`"), "\u0001s\u0002$0\u0003")
+            .replace(Regex("/\\*[\\s\\S]*?\\*/|//[^\\n]*|&lt;!--[\\s\\S]*?--&gt;"), "\u0001c\u0002$0\u0003")
+            .replace(Regex("\\b(fun|val|var|class|object|data|suspend|return|if|else|when|for|while|import|export|package|function|const|let|def|async|await|true|false|null|void|int|float|str|struct)\\b"), "\u0001k\u0002$0\u0003")
+            .replace(Regex("\\b\\d+(\\.\\d+)?([eE][+-]?\\d+)?\\b"), "\u0001n\u0002$0\u0003")
+            .replace(Regex("(&lt;/?)([a-zA-Z][a-zA-Z0-9-]*)"), "$1\u0001t\u0002$2\u0003")
+
+        val html = marked
+            .replace("\u0001s\u0002", "<span class='tok-s'>")
+            .replace("\u0001c\u0002", "<span class='tok-c'>")
+            .replace("\u0001k\u0002", "<span class='tok-k'>")
+            .replace("\u0001n\u0002", "<span class='tok-n'>")
+            .replace("\u0001t\u0002", "<span class='tok-t'>")
+            .replace("\u0003", "</span>")
+
+        return """<!DOCTYPE html><html><head><meta charset='utf-8'/>""" +
+            "<style>body{background:#0b0e14;color:#e6e9ef;margin:0}" +
+            "pre{white-space:pre-wrap;word-break:break-word;padding:16px;margin:0;font-family:monospace;font-size:13px}" +
+            ".tok-s{color:#4ade80}" +
+            ".tok-c{color:#6b7280;font-style:italic}" +
+            ".tok-k{color:#60a5fa}" +
+            ".tok-n{color:#fbbf24}" +
+            ".tok-t{color:#22d3ee}" +
+            "</style></head><body><pre>$html</pre></body></html>"
     }
 
     private fun handleSelectedModel(uri: Uri) {
@@ -587,6 +646,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        GenerationService.stop(this)
         if (::engine.isInitialized) engine.destroy()
         super.onDestroy()
     }

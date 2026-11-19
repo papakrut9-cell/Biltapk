@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Custom UI
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -56,6 +56,7 @@ jobs:
           APP_DIR="$P/app"
           mkdir -p "$BASE/java/com/example/llama" "$BASE/res/layout" "$BASE/res/drawable" "$BASE/res/values" "$BASE/res/anim"
           cp ui-overlay/app/build.gradle.kts "$APP_DIR/build.gradle.kts"
+          cp ui-overlay/app/proguard-rules.pro "$APP_DIR/proguard-rules.pro"
           cp ui-overlay/src/main/java/com/example/llama/*.kt "$BASE/java/com/example/llama/"
           cp ui-overlay/src/main/res/layout/*.xml "$BASE/res/layout/"
           cp ui-overlay/src/main/res/drawable/*.xml "$BASE/res/drawable/"
@@ -73,7 +74,7 @@ jobs:
       - name: Build APK (результат пишем в gradle_exit_code.txt)
         run: |
           cd llama.cpp/examples/llama.android
-          ./gradlew assembleDebug --stacktrace 2>&1 | tee build.log
+          ./gradlew assembleDebug assembleRelease --stacktrace 2>&1 | tee build.log
           echo ${PIPESTATUS[0]} > gradle_exit_code.txt
         shell: bash -eo pipefail {0}
 
