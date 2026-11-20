@@ -279,6 +279,15 @@
                 android:backgroundTint="@color/bg_surface" 
                 android:textColor="@color/text_primary" 
                 app:cornerRadius="12dp" />
+            <Button 
+                android:id="@+id/unloadModelBtn" 
+                android:layout_width="match_parent" 
+                android:layout_height="52dp" 
+                android:layout_marginTop="8dp" 
+                android:text="Выгрузить модель из ОЗУ" 
+                android:backgroundTint="@color/bg_surface" 
+                android:textColor="@color/text_primary" 
+                app:cornerRadius="12dp" />
 
             <!-- Список сохранённых моделей -->
             <com.google.android.material.card.MaterialCardView
