@@ -28,6 +28,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.arm.aichat.AiChat
 import com.arm.aichat.InferenceEngine
+import com.arm.aichat.UnsupportedArchitectureException
 import com.arm.aichat.gguf.GgufMetadataReader
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.onCompletion
@@ -601,8 +602,28 @@ class MainActivity : AppCompatActivity() {
                 )
 
                 withContext(Dispatchers.Main) { statusTitleTv.text = "Загрузка в ОЗУ..." }
-                engine.loadModel(file.path)
-                engine.setSystemPrompt(systemPromptEt.text.toString())
+                // Движок требует состояния Initialized: после предыдущей ошибки
+                // он остаётся в Error, после уже загруженной модели — в ModelReady.
+                // cleanUp() умеет корректно вернуть из обоих состояний.
+                val engineState = engine.getState().value
+                if (engineState is InferenceEngine.State.Error || engineState is InferenceEngine.State.ModelReady) {
+                    engine.cleanUp()
+                }
+
+                try {
+                    engine.loadModel(file.path)
+                    engine.setSystemPrompt(systemPromptEt.text.toString())
+                } catch (t: Throwable) {
+                    // Дублируем полный стектрейс во вкладку «Консоль» для диагностики на устройстве
+                    val sw = java.io.StringWriter()
+                    t.printStackTrace(java.io.PrintWriter(sw))
+                    withContext(Dispatchers.Main) {
+                        terminalOutputTv.append("\n=== ОШИБКА ЗАГРУЗКИ МОДЕЛИ ===\n" +
+                            "Движок: ${engine.getState().value::class.simpleName}\n" +
+                            sw.toString() + "\n=== КОНЕЦ ===\n")
+                    }
+                    throw t
+                }
 
                 withContext(Dispatchers.Main) {
                     isModelReady = true
@@ -614,10 +635,20 @@ class MainActivity : AppCompatActivity() {
                     updateRamStats()
                     loadModels()
                 }
-            } catch (e: Exception) {
+            } catch (e: UnsupportedArchitectureException) {
                 withContext(Dispatchers.Main) {
                     statusTitleTv.text = "Ошибка"
-                    Toast.makeText(this@MainActivity, "Ошибка: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Формат модели не поддерживается: движок запускает только тернарные GGUF-модели в квантовании PTQ1_0 / PTQ2_0",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            } catch (e: Exception) {
+                val detail = e.message?.takeIf { it.isNotBlank() } ?: e.javaClass.simpleName
+                withContext(Dispatchers.Main) {
+                    statusTitleTv.text = "Ошибка"
+                    Toast.makeText(this@MainActivity, "Ошибка: $detail", Toast.LENGTH_LONG).show()
                 }
             }
         }
