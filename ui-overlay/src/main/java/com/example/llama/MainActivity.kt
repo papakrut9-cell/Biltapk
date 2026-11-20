@@ -32,6 +32,7 @@ import com.arm.aichat.UnsupportedArchitectureException
 import com.arm.aichat.gguf.GgufMetadataReader
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.NonCancellable
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Locale
@@ -46,6 +47,8 @@ class MainActivity : AppCompatActivity() {
     private var isModelReady = false     // модель загружена в ОЗУ
     private var isGenerating = false
     private var thinkMode = 0
+    private var isStopping = false
+    private var modelLabel = "Bonsai Studio"
 
     private var generationStart = 0L
     private var tokenCount = 0
@@ -91,6 +94,7 @@ class MainActivity : AppCompatActivity() {
         systemPromptEt = findViewById(R.id.systemPromptEt)
 
         messageAdapter = MessageAdapter()
+        messageAdapter.suppressThink = true
         messagesRv.layoutManager = LinearLayoutManager(this).apply { stackFromEnd = true }
         (messagesRv.itemAnimator as? DefaultItemAnimator)?.supportsChangeAnimations = false
         messagesRv.adapter = messageAdapter
@@ -121,6 +125,9 @@ class MainActivity : AppCompatActivity() {
                 engineReady = true
                 if (!isModelReady) actionBtn.text = "📁"
             }
+            engine.state.collect { st ->
+                withContext(Dispatchers.Main) { reflectEngineState(st) }
+            }
         }
 
         loadChatHistory()
@@ -128,6 +135,16 @@ class MainActivity : AppCompatActivity() {
         updateRamStats()
         setupNavigation()
         setupControls()
+    }
+
+    private fun reflectEngineState(state: InferenceEngine.State) {
+        when (state) {
+            is InferenceEngine.State.ProcessingUserPrompt ->
+                if (isGenerating && !isStopping) statusTitleTv.text = "Обработка запроса…"
+            is InferenceEngine.State.Generating ->
+                statusTitleTv.text = modelLabel
+            else -> {}
+        }
     }
 
     private fun showStartupError(message: String) {
@@ -221,7 +238,7 @@ class MainActivity : AppCompatActivity() {
                     v.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
                     Toast.makeText(this, "Движок ещё запускается, секунду...", Toast.LENGTH_SHORT).show()
                 }
-                isGenerating -> generationJob?.cancel()
+                isGenerating -> stopGeneration()
                 else -> {
                     v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                     if (!isModelReady) {
@@ -236,6 +253,8 @@ class MainActivity : AppCompatActivity() {
 
         thinkModeBtn.setOnClickListener {
             thinkMode = (thinkMode + 1) % 3
+            messageAdapter.suppressThink = (thinkMode == 0)
+            messageAdapter.refreshAll()
             thinkModeBtn.text = when (thinkMode) {
                 0 -> "💭 Думать: ВЫКЛ"
                 1 -> "💭 Думать: АВТО"
@@ -275,13 +294,9 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.canvasPreviewModeBtn).setOnClickListener {
             canvasEditorEt.visibility = View.GONE
             canvasWebView.visibility = View.VISIBLE
-            canvasWebView.loadDataWithBaseURL(
-                null,
-                canvasPreviewHtml(canvasEditorEt.text.toString()),
-                "text/html",
-                "UTF-8",
-                null
-            )
+            val code = canvasEditorEt.text.toString()
+            val html = if (isHtmlDocument(code)) code else canvasPreviewHtml(code)
+            canvasWebView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
         }
         findViewById<Button>(R.id.canvasCopyBtn).setOnClickListener {
             val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -328,6 +343,14 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.clearChatBtn).setOnClickListener { confirmClearChat() }
 
+        findViewById<Button>(R.id.unloadModelBtn).setOnClickListener {
+            when {
+                isGenerating -> Toast.makeText(this, "Дождитесь завершения ответа", Toast.LENGTH_SHORT).show()
+                !isModelReady -> Toast.makeText(this, "Модель не загружена", Toast.LENGTH_SHORT).show()
+                else -> confirmUnloadModel()
+            }
+        }
+
         findViewById<Button>(R.id.applySystemBtn).setOnClickListener {
             when {
                 !engineReady -> Toast.makeText(this, "Движок ещё запускается, секунду...", Toast.LENGTH_SHORT).show()
@@ -362,6 +385,38 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton("Очистить") { _, _ -> doClearChat() }
             .setNegativeButton("Отмена", null)
             .show()
+    }
+
+    private fun confirmUnloadModel() {
+        AlertDialog.Builder(this)
+            .setTitle("Выгрузить модель?")
+            .setMessage("Модель будет удалена из ОЗУ. Файл на диске и история чата сохранятся.")
+            .setPositiveButton("Выгрузить") { _, _ -> doUnloadModel() }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+
+    private fun doUnloadModel() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                engine.cleanUp()
+                withContext(Dispatchers.Main) {
+                    isModelReady = false
+                    actionBtn.text = "📁"
+                    actionBtn.setBackgroundColor(getColor(R.color.bg_surface))
+                    userInputEt.hint = "Выберите модель .GGUF"
+                    statusTitleTv.text = "Bonsai Studio"
+                    speedTv.text = "0.0 т/с"
+                    updateRamStats()
+                    loadModels()
+                    Toast.makeText(this@MainActivity, "Модель выгружена из ОЗУ", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Ошибка выгрузки: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
     }
 
     private fun doClearChat() {
@@ -415,14 +470,31 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun stopGeneration() {
+        isStopping = true
+        generationJob?.cancel()
+        speedTv.text = "стоп…"
+        statusTitleTv.text = "Останавливаюсь…"
+        val st = engine.state.value
+        if (st is InferenceEngine.State.ProcessingUserPrompt) {
+            // Нативный префилл непрерываем; отмена сработает на первом токене
+            Toast.makeText(this, "Остановлю после обработки запроса", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun sendMessage() {
         val rawInput = userInputEt.text.toString().trim()
         if (rawInput.isEmpty()) return
+        if (engine.state.value !is InferenceEngine.State.ModelReady) {
+            Toast.makeText(this, "Движок ещё обрабатывает предыдущий запрос…", Toast.LENGTH_SHORT).show()
+            return
+        }
 
         userInputEt.text.clear()
         lastAssistantMsg.clear()
         tokenCount = 0
         lastUiTs = 0
+        isStopping = false
         generationStart = System.currentTimeMillis()
 
         val userMsg = Message(UUID.randomUUID().toString(), rawInput, true)
@@ -455,7 +527,10 @@ class MainActivity : AppCompatActivity() {
         generationJob = lifecycleScope.launch(Dispatchers.Default) {
             engine.sendUserPrompt(promptToSend)
                 .onCompletion {
-                    withContext(Dispatchers.Main) { finishGeneration() }
+                    // Teardown обязан выполниться даже в отменённой корутине: без NonCancellable
+                    // withContext(Main) кидает CancellationException, isGenerating застревает в true
+                    // и интерфейс блокируется до перезапуска приложения
+                    withContext(Dispatchers.Main + NonCancellable) { finishGeneration() }
                 }
                 .collect { token ->
                     tokenCount++
@@ -476,16 +551,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun finishGeneration() {
+        val stopped = isStopping
+        isStopping = false
         isGenerating = false
         GenerationService.stop(this)
         messageAdapter.isStreaming = false
-        actionBtn.text = "➤"
+        actionBtn.text = "✦"
         actionBtn.setBackgroundColor(getColor(R.color.accent_blue))
+        statusTitleTv.text = modelLabel
 
         val total = ((System.currentTimeMillis() - generationStart) / 1000.0).coerceAtLeast(0.1)
         speedTv.text = String.format(Locale.US, "%.1f т/с", tokenCount / total)
+
+        if (stopped && lastAssistantMsg.isEmpty()) lastAssistantMsg.append("(остановлено)")
         refreshLastAssistant(thinkMs = System.currentTimeMillis() - generationStart)
         updateRamStats()
+        if (stopped) Toast.makeText(this, "Генерация остановлена", Toast.LENGTH_SHORT).show()
 
         val last = messageAdapter.currentList.lastOrNull()
         if (last != null && !last.isUser) {
@@ -520,6 +601,17 @@ class MainActivity : AppCompatActivity() {
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
+
+    private fun isHtmlDocument(code: String): Boolean {
+        val head = code.trimStart().lowercase()
+        return head.startsWith("<!doctype") ||
+            head.startsWith("<html") ||
+            head.startsWith("<body") ||
+            head.startsWith("<div") ||
+            head.startsWith("<h1") ||
+            head.startsWith("<canvas") ||
+            head.startsWith("<svg")
+    }
 
     private fun canvasPreviewHtml(code: String): String {
         val esc = code
@@ -635,7 +727,8 @@ class MainActivity : AppCompatActivity() {
                     actionBtn.text = "➤"
                     actionBtn.setBackgroundColor(getColor(R.color.accent_blue))
                     userInputEt.hint = "Спросите Bonsai..."
-                    statusTitleTv.text = "Bonsai • ${metadata?.basic?.sizeLabel ?: "Ready"}"
+                    modelLabel = "Bonsai • ${metadata?.basic?.sizeLabel ?: "Ready"}"
+                    statusTitleTv.text = modelLabel
                     updateRamStats()
                     loadModels()
                 }
