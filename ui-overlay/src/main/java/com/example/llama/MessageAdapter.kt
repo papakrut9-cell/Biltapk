@@ -81,7 +81,6 @@ class MessageAdapter : ListAdapter<Message, RecyclerView.ViewHolder>(DIFF) {
         val thinkStart = rawText.indexOf(THINK_OPEN)
         val thinkEnd = rawText.indexOf(THINK_CLOSE)
 
-    private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
         if (thinkStart != -1 && thinkEnd != -1) {
             val thought = rawText.substring(thinkStart + THINK_OPEN.length, thinkEnd).trim()
             val answer = rawText.substring(thinkEnd + THINK_CLOSE.length).trim()
