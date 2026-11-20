@@ -614,13 +614,17 @@ class MainActivity : AppCompatActivity() {
                     engine.loadModel(file.path)
                     engine.setSystemPrompt(systemPromptEt.text.toString())
                 } catch (t: Throwable) {
-                    // Дублируем полный стектрейс во вкладку «Консоль» для диагностики на устройстве
+                    // Дублируем полный стектрейс и нативный лог движка (ai-chat) во вкладку «Консоль»:
+                    // реальная причина отказа llama_model_load_from_file видна только в logcat.
                     val sw = java.io.StringWriter()
                     t.printStackTrace(java.io.PrintWriter(sw))
+                    val nativeLog = readNativeEngineLog()
                     withContext(Dispatchers.Main) {
                         terminalOutputTv.append("\n=== ОШИБКА ЗАГРУЗКИ МОДЕЛИ ===\n" +
                             "Движок: ${engine.state.value::class.simpleName}\n" +
-                            sw.toString() + "\n=== КОНЕЦ ===\n")
+                            sw.toString() +
+                            "\n--- Нативный лог движка (ai-chat) ---\n" + nativeLog +
+                            "\n=== КОНЕЦ ===\n")
                     }
                     throw t
                 }
@@ -636,11 +640,15 @@ class MainActivity : AppCompatActivity() {
                     loadModels()
                 }
             } catch (e: UnsupportedArchitectureException) {
+                val nativeLog = readNativeEngineLog()
                 withContext(Dispatchers.Main) {
                     statusTitleTv.text = "Ошибка"
+                    terminalOutputTv.append("\n=== ФОРМАТ НЕ ПОДДЕРЖИВАЕТСЯ ===\n" +
+                        "--- Нативный лог движка (ai-chat) ---\n" + nativeLog + "\n=== КОНЕЦ ===\n")
+                    (terminalOutputTv.parent as? ScrollView)?.fullScroll(View.FOCUS_DOWN)
                     Toast.makeText(
                         this@MainActivity,
-                        "Формат модели не поддерживается: движок запускает только тернарные GGUF-модели в квантовании PTQ1_0 / PTQ2_0",
+                        "Формат модели не поддерживается: движок запускает только тернарные GGUF-модели в квантовании PTQ1_0 / PQ2_0",
                         Toast.LENGTH_LONG
                     ).show()
                 }
@@ -651,6 +659,18 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this@MainActivity, "Ошибка: $detail", Toast.LENGTH_LONG).show()
                 }
             }
+        }
+    }
+
+    private fun readNativeEngineLog(): String {
+        return try {
+            val p = Runtime.getRuntime().exec(arrayOf("logcat", "-d", "-t", "300", "-s", "ai-chat:V"))
+            val out = p.inputStream.bufferedReader().readText()
+            p.destroy()
+            Runtime.getRuntime().exec(arrayOf("logcat", "-c")).destroy()
+            out.ifBlank { "(пусто)" }
+        } catch (e: Exception) {
+            "не удалось прочитать logcat: ${e.message}"
         }
     }
 
