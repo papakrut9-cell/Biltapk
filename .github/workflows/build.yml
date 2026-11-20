@@ -63,6 +63,10 @@ jobs:
           cp ui-overlay/src/main/res/values/*.xml "$BASE/res/values/"
           cp ui-overlay/src/main/res/anim/*.xml "$BASE/res/anim/"
 
+      - name: Apply thinking control patch (real /no_think and /think at prompt level)
+        run: |
+          git -C llama.cpp apply --verbose ../project/patches/ai_chat_thinking.patch
+
       - name: Grant execute permission for gradlew
         run: chmod +x ./llama.cpp/examples/llama.android/gradlew
 

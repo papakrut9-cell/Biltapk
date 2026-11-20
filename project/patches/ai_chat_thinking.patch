@@ -1,0 +1,40 @@
+--- a/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
++++ b/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
+@@ -415,10 +415,36 @@
+     LOGd("%s: User prompt received: \n%s", __func__, user_prompt);
+     std::string formatted_user_prompt(user_prompt);
+ 
++    // Thinking sentinels from the app layer (Bonsai Studio):
++    // - "/no_think" disables thinking FOR THIS TURN: a pre-closed empty thinking
++    //   block is appended right after the assistant start tag, so the model skips
++    //   thinking entirely and answers immediately (same effect as Qwen3's
++    //   enable_thinking=false);
++    // - "/think" forces the default thinking behavior for this turn.
++    // Sentinels are stripped from the message content before templating.
++    std::string user_content(user_prompt);
++    std::size_t sentinel_pos;
++    bool disable_thinking = false;
++    bool force_thinking = false;
++    if ((sentinel_pos = user_content.find("/no_think")) != std::string::npos) {
++        user_content.erase(sentinel_pos, 9);
++        disable_thinking = true;
++    } else if ((sentinel_pos = user_content.find("/think")) != std::string::npos) {
++        user_content.erase(sentinel_pos, 6);
++        force_thinking = true;
++    }
++
+     // Format user prompt if applicable
+     const bool has_chat_template = common_chat_templates_was_explicit(g_chat_templates.get());
+     if (has_chat_template) {
+-        formatted_user_prompt = chat_add_and_format(ROLE_USER, user_prompt);
++        formatted_user_prompt = chat_add_and_format(ROLE_USER, user_content.c_str());
++        if (disable_thinking) {
++            LOGi("%s: Thinking disabled for this turn (empty pre-closed think block)", __func__);
++            formatted_user_prompt += "\u003cthink\u003e\n\n\u003c/think\u003e\n\n";
++        } else if (force_thinking) {
++            LOGi("%s: Thinking forced for this turn (open think block)", __func__);
++            formatted_user_prompt += "\u003cthink\u003e\n";
++        }
+     }
+     env->ReleaseStringUTFChars(juser_prompt, user_prompt);
+ 
