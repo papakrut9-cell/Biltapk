@@ -14,8 +14,8 @@ android {
         applicationId = "com.example.llama.aichat"
         minSdk = 33
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.2.4"
+        versionCode = 8
+        versionName = "1.2.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -42,6 +42,15 @@ android {
             )
             // Подписываем debug-keystore, чтобы release-APK ставился сразу из артефакта
             signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+    // Нативные бэкенды движка (libggml-cpu-android_armv*) должны ЛЕЖАТЬ ФАЙЛАМИ в
+    // /data/app/.../lib — движок грузит их через ggml_backend_load_all_from_path(nativeLibDir).
+    // С useLegacyPackaging=false (extractNativeLibs=false) каталог lib пуст, бэкенды не
+    // находя��ся, и любая нагрузка модели падает: "no backends are loaded".
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
         }
     }
     compileOptions {
