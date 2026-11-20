@@ -605,7 +605,7 @@ class MainActivity : AppCompatActivity() {
                 // Движок требует состояния Initialized: после предыдущей ошибки
                 // он остаётся в Error, после уже загруженной модели — в ModelReady.
                 // cleanUp() умеет корректно вернуть из обоих состояний.
-                val engineState = engine.getState().value
+                val engineState = engine.state.value
                 if (engineState is InferenceEngine.State.Error || engineState is InferenceEngine.State.ModelReady) {
                     engine.cleanUp()
                 }
@@ -619,7 +619,7 @@ class MainActivity : AppCompatActivity() {
                     t.printStackTrace(java.io.PrintWriter(sw))
                     withContext(Dispatchers.Main) {
                         terminalOutputTv.append("\n=== ОШИБКА ЗАГРУЗКИ МОДЕЛИ ===\n" +
-                            "Движок: ${engine.getState().value::class.simpleName}\n" +
+                            "Движок: ${engine.state.value::class.simpleName}\n" +
                             sw.toString() + "\n=== КОНЕЦ ===\n")
                     }
                     throw t
