@@ -41,14 +41,7 @@ class MessageAdapter : ListAdapter<Message, RecyclerView.ViewHolder>(DIFF) {
     // Пока модель генерирует ответ: рисуем курсор в пустых сообщениях
     var isStreaming: Boolean = false
 
-    // Режим "Думать: ВЫКЛ" — размышления модели не показываем вовсе
-    var suppressThink: Boolean = false
-
     private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-
-    fun refreshAll() {
-        if (itemCount > 0) notifyItemRangeChanged(0, itemCount)
-    }
 
     override fun getItemViewType(position: Int): Int {
         return if (getItem(position).isUser) VIEW_TYPE_USER else VIEW_TYPE_ASSISTANT
@@ -88,18 +81,7 @@ class MessageAdapter : ListAdapter<Message, RecyclerView.ViewHolder>(DIFF) {
         val thinkStart = rawText.indexOf(THINK_OPEN)
         val thinkEnd = rawText.indexOf(THINK_CLOSE)
 
-        if (suppressThink && thinkStart != -1) {
-            rawText = if (thinkEnd != -1) {
-                rawText.substring(0, thinkStart) + rawText.substring(thinkEnd + THINK_CLOSE.length)
-            } else {
-                rawText.substring(0, thinkStart)
-            }
-            rawText = rawText.trim()
-            holder.thinkContainer.visibility = View.GONE
-            holder.textView.text = if (rawText.isNotBlank()) rawText else if (isStreaming) "▍" else ""
-            return
-        }
-
+    private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
         if (thinkStart != -1 && thinkEnd != -1) {
             val thought = rawText.substring(thinkStart + THINK_OPEN.length, thinkEnd).trim()
             val answer = rawText.substring(thinkEnd + THINK_CLOSE.length).trim()

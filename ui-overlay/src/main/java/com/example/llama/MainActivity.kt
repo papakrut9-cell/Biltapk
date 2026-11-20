@@ -94,7 +94,6 @@ class MainActivity : AppCompatActivity() {
         systemPromptEt = findViewById(R.id.systemPromptEt)
 
         messageAdapter = MessageAdapter()
-        messageAdapter.suppressThink = true
         messagesRv.layoutManager = LinearLayoutManager(this).apply { stackFromEnd = true }
         (messagesRv.itemAnimator as? DefaultItemAnimator)?.supportsChangeAnimations = false
         messagesRv.adapter = messageAdapter
@@ -253,8 +252,6 @@ class MainActivity : AppCompatActivity() {
 
         thinkModeBtn.setOnClickListener {
             thinkMode = (thinkMode + 1) % 3
-            messageAdapter.suppressThink = (thinkMode == 0)
-            messageAdapter.refreshAll()
             thinkModeBtn.text = when (thinkMode) {
                 0 -> "💭 Думать: ВЫКЛ"
                 1 -> "💭 Думать: АВТО"
