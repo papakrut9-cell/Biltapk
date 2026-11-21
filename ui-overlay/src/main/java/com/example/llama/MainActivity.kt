@@ -521,6 +521,13 @@ class MainActivity : AppCompatActivity() {
             else -> rawInput
         }
 
+        // "Думать: ВКЛ": движок префиллит открывающий think-тег, модель его не пишет.
+        // Вставляем его сами, чтобы шторка размышлений гарантированно рендерилась.
+        val openThinkTag = "\u003C" + "think" + "\u003E"
+        if (thinkMode == 2) {
+            lastAssistantMsg.append(openThinkTag).append('\n')
+        }
+
         generationJob = lifecycleScope.launch(Dispatchers.Default) {
             engine.sendUserPrompt(promptToSend)
                 .onCompletion {

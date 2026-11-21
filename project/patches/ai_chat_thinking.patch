@@ -1,40 +1,112 @@
 diff --git a/examples/llama.android/lib/src/main/cpp/ai_chat.cpp b/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
-index ca6f7172d..1dce5e60e 100644
+index ca6f7172d..fe0c522a9 100644
 --- a/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
 +++ b/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
-@@ -415,10 +415,34 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
+@@ -3,6 +3,7 @@
+ #include <iomanip>
+ #include <cmath>
+ #include <string>
++#include <map>
+ #include <unistd.h>
+ #include <sampling.h>
+ 
+@@ -297,6 +298,44 @@ static std::string chat_add_and_format(const std::string &role, const std::strin
+     return formatted;
+ }
+ 
++/**
++ * Variant of chat_add_and_format() that applies the chat template via jinja with
++ * extra template kwargs (e.g. enable_thinking=false). Falls back to the caller:
++ * any exception from the jinja renderer propagates so the code can re-format
++ * through the legacy path.
++ */
++static std::string chat_add_and_format_thinking(const std::string &role,
++                                                const std::string &content,
++                                                const std::map<std::string, std::string> &chat_template_kwargs) {
++    common_chat_msg new_msg;
++    new_msg.role = role;
++    new_msg.content = content;
++
++    common_chat_templates_inputs inputs;
++    inputs.use_jinja            = true;
++    inputs.add_bos              = g_chat_templates->add_bos;
++    inputs.add_eos              = g_chat_templates->add_eos;
++    inputs.chat_template_kwargs = chat_template_kwargs;
++
++    std::string fmt_past_msg;
++    if (!chat_msgs.empty()) {
++        inputs.messages              = chat_msgs;
++        inputs.add_generation_prompt = false;
++        fmt_past_msg                 = common_chat_templates_apply(g_chat_templates.get(), inputs).prompt.str();
++    }
++    std::ostringstream ss;
++    if (role == ROLE_USER && !fmt_past_msg.empty() && fmt_past_msg.back() == '\n') {
++        ss << "\n";
++    }
++    inputs.messages.push_back(new_msg);
++    inputs.add_generation_prompt = (role == ROLE_USER);
++    auto fmt_new_msg             = common_chat_templates_apply(g_chat_templates.get(), inputs).prompt.str();
++    ss << fmt_new_msg.substr(fmt_past_msg.size(), fmt_new_msg.size() - fmt_past_msg.size());
++    chat_msgs.push_back(new_msg);
++    LOGi("%s: Formatted and added %s message: \n%s\n", __func__, role.c_str(), ss.str().c_str());
++    return ss.str();
++}
++
+ /**
+  * Completion loop's short-term states:
+  * - stop generation position
+@@ -415,10 +454,53 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
      LOGd("%s: User prompt received: \n%s", __func__, user_prompt);
      std::string formatted_user_prompt(user_prompt);
  
-+    // Thinking sentinels from the app layer (Bonsai Studio):
-+    // - "/no_think" disables thinking FOR THIS TURN: the sentinel is replaced with
-+    //   the native soft switch "<think>\n\n</think>\n\n" inside the user message,
-+    //   and a pre-closed empty thinking block is appended right after the assistant
-+    //   start tag, so the model skips thinking entirely and answers immediately
-+    //   (same effect as Qwen3's enable_thinking=false);
-+    // - "/think" forces the default thinking behavior for this turn: the sentinel
-+    //   is replaced with the native soft switch "<think>" inside the user message;
-+    //   no open think block is prefilled, so the model emits its own <think> tag
-+    //   and the app UI can render the reasoning separately.
++    // Thinking control sentinels from the app layer (Bonsai Studio):
++    // - "/no_think" turns thinking OFF for this turn: the chat template is
++    //   applied with the kwarg enable_thinking=false (e.g. Qwen3 emits the
++    //   pre-closed empty think block and answers immediately). Fallbacks:
++    //   native soft switch in the user message + manually appended pre-closed
++    //   empty think block after the assistant start tag;
++    // - "/think" turns thinking ON for this turn: enable_thinking=true, with
++    //   the native soft switch in the user message as fallback. The open think
++    //   block is NOT prefilled, so the model emits its own \u003cthink\u003e tag and
++    //   the app UI can render reasoning separately.
 +    std::string user_content(user_prompt);
 +    std::size_t sentinel_pos;
 +    bool disable_thinking = false;
++    bool force_thinking   = false;
 +    if ((sentinel_pos = user_content.find("/no_think")) != std::string::npos) {
-+        user_content.replace(sentinel_pos, 9, "<think>");
++        user_content.replace(sentinel_pos, 9, " <think>");
 +        disable_thinking = true;
 +    } else if ((sentinel_pos = user_content.find("/think")) != std::string::npos) {
-+        user_content.replace(sentinel_pos, 6, "<think>");
++        user_content.replace(sentinel_pos, 6, " <think>");
++        force_thinking = true;
 +    }
 +
      // Format user prompt if applicable
      const bool has_chat_template = common_chat_templates_was_explicit(g_chat_templates.get());
      if (has_chat_template) {
 -        formatted_user_prompt = chat_add_and_format(ROLE_USER, user_prompt);
-+        formatted_user_prompt = chat_add_and_format(ROLE_USER, user_content.c_str());
-+        if (disable_thinking) {
-+            LOGi("%s: Thinking disabled for this turn (empty pre-closed think block)", __func__);
++        bool kwargs_ok = false;
++        if (disable_thinking || force_thinking) {
++            std::map<std::string, std::string> kwargs;
++            kwargs["enable_thinking"] = disable_thinking ? "false" : "true";
++            try {
++                formatted_user_prompt = chat_add_and_format_thinking(ROLE_USER, user_content, kwargs);
++                kwargs_ok = true;
++            } catch (const std::exception &e) {
++                LOGe("%s: chat template kwargs failed, legacy fallback: %s", __func__, e.what());
++            }
++        }
++        if (!kwargs_ok) {
++            formatted_user_prompt = chat_add_and_format(ROLE_USER, user_content.c_str());
++        }
++        if (disable_thinking &&
++            formatted_user_prompt.find("<think>\n\n</think>\n\n") == std::string::npos) {
++            LOGi("%s: Thinking disabled fallback: appending pre-closed empty think block", __func__);
 +            formatted_user_prompt += "<think>\n\n</think>\n\n";
 +        }
++    } else {
++        // No embedded chat template: keep the native soft switch, drop app sentinels
++        formatted_user_prompt = user_content;
      }
      env->ReleaseStringUTFChars(juser_prompt, user_prompt);
  
