@@ -83,7 +83,8 @@ class MessageAdapter : ListAdapter<Message, RecyclerView.ViewHolder>(DIFF) {
 
         if (thinkEnd != -1) {
             val thoughtStart = if (thinkStart != -1) thinkStart + THINK_OPEN.length else 0
-            val thought = rawText.substring(thoughtStart, thinkEnd).trim()
+            // Модель могла выдать свой открывающий тег поверх синтезированного приложением — убираем дубликат
+            val thought = stripExtraOpenTag(rawText.substring(thoughtStart, thinkEnd))
             val answer = rawText.substring(thinkEnd + THINK_CLOSE.length).trim()
             val duration = if (message.thinkMs > 0) {
                 " · " + String.format(Locale.US, "%.1f", message.thinkMs / 1000.0) + " c"
@@ -109,13 +110,19 @@ class MessageAdapter : ListAdapter<Message, RecyclerView.ViewHolder>(DIFF) {
             holder.thinkContainer.visibility = View.VISIBLE
             holder.thinkContent.visibility = View.VISIBLE
             holder.thinkHeader.text = "⏳ Модель размышляет..."
-            holder.thinkContent.text = rawText.substring(thinkStart + THINK_OPEN.length).trim()
+            holder.thinkContent.text = stripExtraOpenTag(rawText.substring(thinkStart + THINK_OPEN.length))
             holder.textView.text = if (isStreaming) "▍" else ""
             holder.thinkHeader.setOnClickListener(null)
         } else {
             holder.thinkContainer.visibility = View.GONE
             holder.textView.text = if (rawText.isNotBlank()) rawText else if (isStreaming) "▍" else ""
         }
+    }
+
+    private fun stripExtraOpenTag(text: String): String {
+        var t = text.trim()
+        if (t.startsWith(THINK_OPEN)) t = t.substring(THINK_OPEN.length).trim()
+        return t
     }
 
     class UserMessageViewHolder(view: View) : RecyclerView.ViewHolder(view) {
