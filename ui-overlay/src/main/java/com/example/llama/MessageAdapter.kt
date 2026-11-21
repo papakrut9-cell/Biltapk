@@ -81,8 +81,9 @@ class MessageAdapter : ListAdapter<Message, RecyclerView.ViewHolder>(DIFF) {
         val thinkStart = rawText.indexOf(THINK_OPEN)
         val thinkEnd = rawText.indexOf(THINK_CLOSE)
 
-        if (thinkStart != -1 && thinkEnd != -1) {
-            val thought = rawText.substring(thinkStart + THINK_OPEN.length, thinkEnd).trim()
+        if (thinkEnd != -1) {
+            val thoughtStart = if (thinkStart != -1) thinkStart + THINK_OPEN.length else 0
+            val thought = rawText.substring(thoughtStart, thinkEnd).trim()
             val answer = rawText.substring(thinkEnd + THINK_CLOSE.length).trim()
             val duration = if (message.thinkMs > 0) {
                 " · " + String.format(Locale.US, "%.1f", message.thinkMs / 1000.0) + " c"

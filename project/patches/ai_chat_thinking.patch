@@ -1,26 +1,29 @@
+diff --git a/examples/llama.android/lib/src/main/cpp/ai_chat.cpp b/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
+index ca6f7172d..1dce5e60e 100644
 --- a/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
 +++ b/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
-@@ -415,10 +415,36 @@
+@@ -415,10 +415,34 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
      LOGd("%s: User prompt received: \n%s", __func__, user_prompt);
      std::string formatted_user_prompt(user_prompt);
  
 +    // Thinking sentinels from the app layer (Bonsai Studio):
-+    // - "/no_think" disables thinking FOR THIS TURN: a pre-closed empty thinking
-+    //   block is appended right after the assistant start tag, so the model skips
-+    //   thinking entirely and answers immediately (same effect as Qwen3's
-+    //   enable_thinking=false);
-+    // - "/think" forces the default thinking behavior for this turn.
-+    // Sentinels are stripped from the message content before templating.
++    // - "/no_think" disables thinking FOR THIS TURN: the sentinel is replaced with
++    //   the native soft switch "<think>\n\n</think>\n\n" inside the user message,
++    //   and a pre-closed empty thinking block is appended right after the assistant
++    //   start tag, so the model skips thinking entirely and answers immediately
++    //   (same effect as Qwen3's enable_thinking=false);
++    // - "/think" forces the default thinking behavior for this turn: the sentinel
++    //   is replaced with the native soft switch "<think>" inside the user message;
++    //   no open think block is prefilled, so the model emits its own <think> tag
++    //   and the app UI can render the reasoning separately.
 +    std::string user_content(user_prompt);
 +    std::size_t sentinel_pos;
 +    bool disable_thinking = false;
-+    bool force_thinking = false;
 +    if ((sentinel_pos = user_content.find("/no_think")) != std::string::npos) {
-+        user_content.erase(sentinel_pos, 9);
++        user_content.replace(sentinel_pos, 9, "<think>");
 +        disable_thinking = true;
 +    } else if ((sentinel_pos = user_content.find("/think")) != std::string::npos) {
-+        user_content.erase(sentinel_pos, 6);
-+        force_thinking = true;
++        user_content.replace(sentinel_pos, 6, "<think>");
 +    }
 +
      // Format user prompt if applicable
@@ -30,10 +33,7 @@
 +        formatted_user_prompt = chat_add_and_format(ROLE_USER, user_content.c_str());
 +        if (disable_thinking) {
 +            LOGi("%s: Thinking disabled for this turn (empty pre-closed think block)", __func__);
-+            formatted_user_prompt += "\u003cthink\u003e\n\n\u003c/think\u003e\n\n";
-+        } else if (force_thinking) {
-+            LOGi("%s: Thinking forced for this turn (open think block)", __func__);
-+            formatted_user_prompt += "\u003cthink\u003e\n";
++            formatted_user_prompt += "<think>\n\n</think>\n\n";
 +        }
      }
      env->ReleaseStringUTFChars(juser_prompt, user_prompt);
